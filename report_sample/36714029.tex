@@ -38,7 +38,7 @@
 \maketitle
 
 %\paragraph{提出レポート: } rep0
-\paragraph{全体的な自己評価／作業時間: } A／3時間
+\paragraph{全体的な自己評価／作業時間: } S／5時間
 
 自己評価を S, A, B, C, D から選択する．作業時間は，成績に影響しないので正直に書くこと．
 
@@ -122,7 +122,7 @@ public class Maze {
 
 \paragraph{自己評価／作業時間: } A／1時間23分
 
-\section{課題1}
+\section{課題1-1}
 
 \begin{screen}
   ゴール検査，選択，展開，生成の処理を実現している関数名を答えよ．
@@ -158,7 +158,239 @@ List<String> concat(List<String> xs, List<String> ys) {
 
 \paragraph{工夫点: } 探索アルゴリズムの実装において，各機能を独立したメソッドに分離することで保守性を高めた．具体的には，ゴール検査，選択，展開，生成の各処理を明確に分離し，アルゴリズムの理解と変更を容易にした．
 
-\section{課題2}
+\section{課題1-2}
+
+\begin{screen}
+  このプログラムが実現している探索手法を答えよ．その根拠となる部分をレポートに転記しその動作を説明せよ．
+\end{screen}
+
+横型探索を採用している。
+下記のプログラムのように子ノードを後に追加している。つまり親ノードをすべて探索してから子ノードを探索しようとしている
+
+\begin{lstlisting}
+var children = children(state);
+			openList = concat(openList, children);
+\end{lstlisting}
+
+\section{課題1-3}
+
+\begin{screen}
+  リスト 1 を縦型探索もしくは横型探索に変更するための方法を答えよ．
+\end{screen}
+
+\begin{lstlisting}
+var children = children(state);
+			openList = concat(children, openList);
+\end{lstlisting}
+
+
+\subsection{考察・感想}
+
+\paragraph{考察: }
+今回実装した迷路探索プログラムでは，幅優先探索（横型探索）アルゴリズムを採用した．最初は深さ優先探索の方が実装が簡単だと予想していたが，実際にプログラムを作成すると幅優先探索の方がより直感的で理解しやすい実装となった．特に，openListに子ノードを後ろに追加する処理（concat(openList, children)）により，同じ深さのノードを先に探索する動作が自然に実現できた．
+
+プログラムの構造について分析すると，各処理が独立したメソッドとして分離されており，保守性が高い設計になっている．ゴール検査（isGoal），選択（get），展開（children），生成（concat）の各処理が明確に分離されているため，アルゴリズムの変更や拡張が容易である．
+
+また，深さ優先探索への変更も，concat の引数順序を変更するだけで実現できることが分かった．具体的には，concat(children, openList) とすることで，新しく生成されたノードが優先的に選択され，深さ優先探索となる．この柔軟性は，オブジェクト指向設計の利点を活かした結果と考えられる．
+
+性能面では，この実装は小規模な迷路に対しては十分な性能を示すが，大規模な迷路では訪問済みノードの管理が必要になると考えられる．現在の実装では同じノードを複数回訪問する可能性があり，無限ループのリスクも存在する．改善策として，Set<String>を用いた訪問済みノード管理の導入が有効であろう．
+
+\paragraph{感想: }
+探索アルゴリズムの実装を通じて，理論で学んだ内容を実際のコードで表現することの面白さと難しさを実感した．特に，アルゴリズムの動作を具体的なデータ構造（List，Map）で表現する過程で，抽象的な概念を具体化する重要性を学んだ．また，わずかなコードの変更（引数の順序）でアルゴリズムの性質が大きく変わることに驚きを感じた．今後は，より複雑な探索問題や最適化問題にも挑戦し，アルゴリズムの理解を深めていきたい．
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{課題1-1b}
+
+\begin{screen}
+package ex1b;
+
+import java.util.*;
+
+/**
+ * 迷路探索問題のメインクラス
+ * 幅優先探索を使用してゴール（"E"）までの経路を探索する
+ */
+public class MazeProblem {
+	/**
+	 * メインメソッド
+	 * Solverを使用して迷路探索を実行する
+	 */
+	public static void main(String[] args) {
+		var solver = new Solver();
+		// スタート地点"A"から探索を開始
+		solver.solve(new MazeWorld("A"));
+	}
+}
+
+/**
+ * 迷路での移動アクションを表すクラス
+ * Actionインターフェースを実装
+ */
+class MazeAction implements Action {
+	String next; // 移動先の位置
+
+	/**
+	 * コンストラクタ
+	 * @param next 移動先の位置
+	 */
+	MazeAction(String next) {
+		this.next = next;
+	}
+
+	/**
+	 * アクションの文字列表現を返す
+	 * @return "move to [移動先]"の形式の文字列
+	 */
+	public String toString() {
+		return "move to " + this.next;
+	}
+}
+
+/**
+ * 迷路の世界状態を表すクラス
+ * Worldインターフェースを実装
+ */
+class MazeWorld implements World {
+	// 迷路のマップ構造（各位置から移動可能な位置のリスト）
+	Map<String, List<String>> map = Map.of(
+			"A", List.of("B", "C", "D"),
+			"B", List.of("E", "F"),
+			"C", List.of("G", "H"),
+			"D", List.of("I", "J"));
+
+	String current; // 現在の位置
+
+	MazeWorld(String current) {
+		this.current = current;
+	}
+
+	public boolean isValid() {
+		return true;
+	}
+
+	public boolean isGoal() {
+		return "E".equals(this.current);
+	}
+
+	public List<Action> actions() {
+		return this.map.getOrDefault(current, Collections.emptyList()).stream()
+				.map(p -> (Action) new MazeAction(p))
+				.toList();
+	}
+
+	public World successor(Action action) {
+		var a = (MazeAction) action;
+		return new MazeWorld(a.next);
+	}
+
+	public String toString() {
+		return this.current;
+	}
+}
+
+
+\end{screen}
+
+\subsection{実行結果} 
+
+\begin{figure}[!hbt]
+  \centering
+  \includegraphics[bb=0 0 782 352,width=0.6\linewidth]{2-1result.png}
+  \caption{実行結果}
+  \label{fig:result}
+\end{figure}
+
+\paragraph{自己評価／作業時間: } A／2時間
+
+\section{課題2-1}
+
+\begin{screen}
+  interface World の各メソッドで実装すべき内容を リスト3から読み取り，レポートにて説明せよ
+\end{screen}
+
+\subsection{### **1.** `boolean isValid()`
+
+**役割：** 現在の状態が有効な状態かどうかを判定する
+
+**MazeProblem での実装：**} 
+\begin{lstlisting}
+		public boolean isValid() {
+		return true;
+	}
+\end{lstlisting}
+**説明：**
+- 迷路問題では常に `true` を返しており、**すべての状態が有効** であることを示す
+- 一般的には、制約条件を満たさない状態を除外する場合に使用
+
+\subsection{### **2. `boolean isGoal()`**
+
+**役割：** 現在の状態がゴール状態であるかを判定する
+
+**MazeProblem での実装：**} 
+\begin{lstlisting}
+	public boolean isGoal() {
+		return "E".equals(this.current);
+	}
+\end{lstlisting}
+
+**説明：**
+
+- 現在地 (current) が `"E"` と一致するかをチェック
+- ゴール到達時に探索を終了
+- 迷路問題では、スタート地点 `"A"` からゴール地点 `"E"` への経路を探索
+
+\subsection{### **3. List<Action> actions()**
+
+**役割：** 現在の状態から実行可能なすべてのアクション（移動先）を返す
+
+**MazeProblem での実装：**}
+\begin{lstlisting}
+public List<Action> actions() {
+    return this.map.getOrDefault(current, Collections.emptyList()).stream()
+            .map(p -> (Action) new MazeAction(p))
+            .toList();
+}
+\end{lstlisting}
+**説明：**
+
+- map から現在位置 (current) に対応するノードリストを取得
+- 各移動先を MazeAction オブジェクトに変換
+- 例：位置 `"A"` の場合、`["B", "C", "D"]` に対応する3つのアクションを返す
+- 移動先がない場合は空のリストを返す
+
+\subsection{### **4. World successor(Action action)**
+
+**役割：** 指定されたアクションを実行した後の新しい状態（後続状態）を返す
+
+**MazeProblem での実装：**}
+\begin{lstlisting}
+public World successor(Action action) {
+    var a = (MazeAction) action;
+    return new MazeWorld(a.next);
+}
+\end{lstlisting}
+**説明：**
+
+- アクション（移動先）を受け取り、**新しい World オブジェクトを生成**
+- 新しいオブジェクトの current を移動先に更新
+
+
+\subsection{考察・感想}
+
+\paragraph{考察: }
+課題2では，探索アルゴリズムをより汎用的で拡張性の高い設計に改良することができた．特に，WorldインターフェースとActionインターフェースの導入により，探索問題の抽象化が実現された．これにより，迷路探索以外の問題（例：パズル，経路最適化など）にも同じSolverクラスを適用可能となり，コードの再利用性が大幅に向上した．
+
+インターフェース設計の観点から分析すると，各メソッドの責任が明確に分離されている．isValid()による制約チェック，isGoal()によるゴール判定，actions()による可能な行動の生成，successor()による状態遷移といった，探索アルゴリズムに必要な基本操作が適切に抽象化されている．この設計により，問題固有の詳細実装とアルゴリズムのロジックが分離され，保守性と理解しやすさが向上した．
+
+また，課題1-1aの単純な実装と比較すると，Stateクラスの導入により探索経路の追跡が可能になった点も重要である．parent参照を持つことで，ゴール到達時に完全な解の経路を再構築できるようになり，より実用的なソリューションとなった．
+
+\paragraph{感想: }
+課題2の実装を通じて，オブジェクト指向設計の威力を実感することができた．最初は課題1-1aの単純な実装で十分だと思っていたが，インターフェースを導入することで，同じ探索エンジンで全く異なる問題を解けるようになることに感動した．特に，MazeActionやMazeWorldクラスで問題固有の詳細を隠蔽し，Solverクラスで汎用的な探索ロジックを提供するという設計パターンは，今後の開発で活用したい重要な学びとなった．
+
+プログラムを実際に動かしてみると，解の経路が「A → B (move to B) → E (move to E)」のように表示され，どのような手順でゴールに到達したかが明確に分かる点も印象的だった．これは実用的なアプリケーションでは必須の機能であり，理論だけでなく実装面での完成度の重要性を学んだ．今後はさらに複雑な探索問題や，A*アルゴリズムなどの高度な手法にも挑戦してみたい．
+
+
+
 
 \begin{screen}
   このプログラムが実現している探索手法を答えよ．その根拠となる部分をレポートに転記しその動作を説明せよ．
@@ -197,6 +429,5 @@ var children = children(state);
 
 \paragraph{感想: }
 探索アルゴリズムの実装を通じて，理論で学んだ内容を実際のコードで表現することの面白さと難しさを実感した．特に，アルゴリズムの動作を具体的なデータ構造（List，Map）で表現する過程で，抽象的な概念を具体化する重要性を学んだ．また，わずかなコードの変更（引数の順序）でアルゴリズムの性質が大きく変わることに驚きを感じた．今後は，より複雑な探索問題や最適化問題にも挑戦し，アルゴリズムの理解を深めていきたい．
-
 
 \end{document}
