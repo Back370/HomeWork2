@@ -1,0 +1,112 @@
+\documentclass[a4j,11pt]{jarticle}
+\usepackage{fancyheadings,listings}
+%\usepackage{here}
+\lstset{
+  basicstyle={\ttfamily},
+  identifierstyle={\small},
+  commentstyle={\smallitshape},
+  keywordstyle={\small\bfseries},
+  ndkeywordstyle={\small},
+  stringstyle={\small\ttfamily},
+  frame={tb},
+  breaklines=true,
+  columns=[l]{fullflexible},
+  numbers=left,
+  xrightmargin=0zw,
+  xleftmargin=3zw,
+  numberstyle={\scriptsize},
+  stepnumber=1,
+  numbersep=1zw,
+  lineskip=-0.5ex
+}
+\setlength{\headheight}{15.5pt}
+\usepackage[dvipdfmx]{graphicx, color}
+\renewcommand{\thepage}{\small -- \arabic{page} --}
+%\headrulewidth=0pt
+\rhead{}
+\lhead{}
+\textheight 234mm
+%
+\usepackage{amsmath}	% required for `\cases' (yatex added)
+\usepackage{bm}
+\usepackage{ascmac}	% required for `\screen' (yatex added)
+
+\newcommand{\thisyear}{2019}
+
+\pagestyle{fancy}
+\lhead{2025$BG/EY(B $B%W%m%0%i%_%s%0(BIII}
+
+\title{2025$BG/EY(B $B%W%m%0%i%_%s%0(BIII $BBh(B1$B2s(B $B%l%]!<%H(B}
+\date{2025 $BG/(B10$B7n(B2$BF|(B}
+
+\author{学籍番号36714029 \\ 遠藤裕人}
+%
+%
+\begin{document}
+%
+\maketitle
+\clearpage
+%
+%
+\section{$B$O$8$a$K(B}
+%
+%
+$B1i=,2]Bj(B1$B$N<B9T7k2L$K$D$$$FJs9p$7$^$9!#(B
+%
+%
+\section{$B1i=,2]Bj(B}
+%
+%
+\subsection{2.1 課題6-1}
+
+\begin{lstlisting}[caption=hoge. label=fuge]
+  #include <stdio.h>
+  #define NAME_LEN 64
+  struct student{
+      char name[NAME_LEN];
+      int height;
+      double weight;
+  };
+  int main(void){
+      struct student takao = {"Takao", 173, 70.5};
+  
+      printf("氏名 = %s\n", takao.name);
+      printf("身長 = %d\n", takao.height);
+      printf("体重 = %.1f\n", takao.weight);
+  
+      return 0;
+  }
+  
+\end{lstlisting}
+出力：\\
+\includegraphics[height=30mm, width=30mm]{task6-1-output.png}
+
+\subsection{2.2 課題6-2}
+\begin{lstlisting}[caption=hoge. label=fuge]
+#include <stdio.h>
+struct input_data{
+    int x;
+    long y;
+    double z;
+};
+int main(void){
+    struct input_data data;
+
+    printf("int型、long型、double型の各変数のサイズを入力せよ。\n");
+    scanf("%d %ld %lf", &data.x, &data.y, &data.z);
+
+
+    printf("a = %d\n", data.x);
+    printf("b= %ld\n", data.y);
+    printf("c= %.1f\n", data.z);
+
+    return 0;
+}
+
+\end{lstlisting}
+出力：\\
+\includegraphics[height=30mm, width=150mm]{task6-2-output.png}
+
+$B<BAu7k2L(B
+$B3X@RHV9f(B: 36714029 $B;aL>!'!!1sF#!!M5?M(B
+\end{document}
