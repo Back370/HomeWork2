@@ -1,0 +1,119 @@
+\documentclass[a4j,11pt]{jarticle}
+\usepackage{fancyheadings,listings}
+%\usepackage{here}
+\lstset{
+  basicstyle={\ttfamily},
+  identifierstyle={\small},
+  commentstyle={\smallitshape},
+  keywordstyle={\small\bfseries},
+  ndkeywordstyle={\small},
+  stringstyle={\small\ttfamily},
+  frame={tb},
+  breaklines=true,
+  columns=[l]{fullflexible},
+  numbers=left,
+  xrightmargin=0zw,
+  xleftmargin=3zw,
+  numberstyle={\scriptsize},
+  stepnumber=1,
+  numbersep=1zw,
+  lineskip=-0.5ex
+}
+\setlength{\headheight}{15.5pt}
+\usepackage[dvipdfmx]{graphicx, color}
+\renewcommand{\thepage}{\small -- \arabic{page} --}
+%\headrulewidth=0pt
+\rhead{}
+\lhead{}
+\textheight 234mm
+%
+\usepackage{amsmath}	% required for `\cases' (yatex added)
+\usepackage{bm}
+\usepackage{ascmac}	% required for `\screen' (yatex added)
+
+\newcommand{\thisyear}{2019}
+
+\pagestyle{fancy}
+\lhead{2025$BG/EY(B $B%W%m%0%i%_%s%0(BIII}
+
+\title{2025$BG/EY(B $B%W%m%0%i%_%s%0(BIII $BBh(B1$B2s(B $B%l%]!<%H(B}
+\date{2025 $BG/(B10$B7n(B2$BF|(B}
+
+\author{学籍番号36714029 \\ 遠藤裕人}
+%
+%
+\begin{document}
+%
+\maketitle
+\clearpage
+%
+%
+\section{$B$O$8$a$K(B}
+%
+%
+$B1i=,2]Bj(B1$B$N<B9T7k2L$K$D$$$FJs9p$7$^$9!#(B
+%
+%
+\section{$B1i=,2]Bj(B}
+%
+%
+\subsection{2.1 課題7-1}
+
+\begin{lstlisting}[caption=hoge. label=fuge]
+#include <stdio.h>
+int main(void)
+{
+    char filename[256];
+    
+    printf("ファイル名を入力してください: ");
+    scanf("%s", filename);
+    
+    FILE *fp;
+    fp = fopen(filename, "r");
+    if (fp==NULL)
+        printf("\aファイル\"%s\"をオープンできませんでした。\n", filename);
+    else {
+        printf("ファイル\"%s\"をオープンしました。\n", filename);
+        fclose(fp);
+    }
+    return 0;
+}
+  
+\end{lstlisting}
+感想：\\
+ファイル操作の基本について学ぶことができた。特に、ファイルのオープンに失敗した場合のエラー処理が重要であることを理解した。また、キーボードからファイル名を入力できるようにすることで、プログラムの柔軟性が向上することを実感した。scanf関数を使った文字列入力と、fopenによるファイルオープン、さらにエラーチェックを組み合わせることで、実用的なプログラムが作成できた。
+
+
+\subsection{2.2 課題6-2}
+\begin{lstlisting}[caption=hoge. label=fuge]
+#define _USE_MATH_DEFINES
+#include <math.h>
+#include <stdio.h>
+
+int main(void){
+    FILE *fp;
+    double x, y;
+
+    if((fp=fopen("sin.dat","w"))==NULL){
+        printf("ファイルをオープンできません。\n");
+    }else{
+        for(int i=0;i<100;i++){
+            x=i/100.0;
+
+            y = sin(2.0 * M_PI * x);
+
+            fprintf(fp, "%lf, %lf\n", x, y);
+        }
+        fclose(fp);
+    }
+    return 0;
+}
+
+\end{lstlisting}
+感想：\\
+ファイル出力とmath.hライブラリを使った数値計算の組み合わせを学んだ。M\_PIを使用するために\_USE\_MATH\_DEFINESマクロが必要であることを知り、ライブラリの適切な使用方法について理解を深めることができた。また、整数除算と浮動小数点除算の違いにも注意する必要があることを学んだ。データをファイルに出力することで、後からgnuplotなどのツールで可視化できる点が便利だと感じた。fprintf関数を使って複数の値をカンマ区切りで出力する方法も習得できた。
+
+
+$B<BAu7k2L(B
+$B3X@RHV9f(B: 36714029 $B;aL>!'!!1sF#!!M5?M(B
+\end{document}
