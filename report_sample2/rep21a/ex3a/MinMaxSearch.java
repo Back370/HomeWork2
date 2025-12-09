@@ -2,9 +2,9 @@ package ex3a;
 import static java.lang.Float.*;
 class MinMaxSearch {
     public static void main(String[] args) {
-        var player = new MinMaxSearch(new Eval(), 2);
-        var value = player.search(new State("A"));
-        System.out.println(value);
+        var player = new MinMaxSearch(new Eval(), 3);
+        var value = player.search(new State("Root"));
+        System.out.println("図2の評価値: " + value);
     }
 
     Eval eval;

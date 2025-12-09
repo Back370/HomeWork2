@@ -1,4 +1,4 @@
-package ex1c;
+package report_sample.ex11c;
 
 import java.util.*;
 
@@ -11,11 +11,45 @@ public class MisCanProblem {
 	/**
 	 * メインメソッド
 	 * 初期状態（左岸に宣教師3人、人食い人種3人、ボート1隻）から探索を開始
+	 * 横型探索（幅優先探索）と縦型探索（深さ優先探索）の両方を実行して性能を比較
 	 */
 	public static void main(String[] args) {
-		var solver = new Solver();
 		// 初期状態：宣教師3人、人食い人種3人、ボート1隻（左岸）
-		solver.solve(new MisCanWorld(3, 3, 1));
+		var initialWorld = new MisCanWorld(3, 3, 1);
+
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##              BREADTH-FIRST SEARCH (Horizontal Search)                      ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println();
+
+		// 横型探索（幅優先探索）
+		var bfsSolver = new Solver();
+		bfsSolver.solve(new MisCanWorld(3, 3, 1), "Breadth-First Search (BFS)");
+
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##                DEPTH-FIRST SEARCH (Vertical Search)                        ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println();
+
+		// 縦型探索（深さ優先探索）
+		var dfsSolver = new DepthFirstSolver();
+		dfsSolver.solve(new MisCanWorld(3, 3, 1), "Depth-First Search (DFS)");
+
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##                       PERFORMANCE COMPARISON                               ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println("\nBoth search algorithms successfully found a solution.");
+		System.out.println("See the statistics above for detailed performance comparison.");
+		System.out.println();
 	}
 }
 
@@ -55,13 +89,20 @@ class MisCanAction implements Action {
 
 	/**
 	 * アクションの文字列表現を返す
-	 * @return "move (宣教師数, 人食い人種数) to 方向"の形式
+	 * @return 移動内容を説明した文字列
 	 */
 	public String toString() {
-		var dir = this.boat < 0 ? "right" : "left ";
+		var dir = this.boat < 0 ? "RIGHT" : "LEFT ";
 		var m = Math.abs(this.missionary);
 		var c = Math.abs(this.cannibal);
-		return String.format("move (%d, %d) to %s", m, c, dir);
+
+		// 移動する人の説明を作成
+		List<String> people = new ArrayList<>();
+		if (m > 0) people.add(m + "M");
+		if (c > 0) people.add(c + "C");
+		String whoMoves = String.join(" + ", people);
+
+		return String.format("[Move %s to %s]", whoMoves, dir);
 	}
 }
 
@@ -149,10 +190,26 @@ class MisCanWorld implements World {
 	}
 
 	/**
-	 * 状態の文字列表現を返す
-	 * @return "(宣教師数, 人食い人種数, ボート位置)"の形式
+	 * 状態の文字列表現を返す（視覚的に分かりやすい形式）
+	 * @return 川の両岸の状態を視覚的に表現した文字列
 	 */
 	public String toString() {
-		return String.format("(%d, %d, %d)", this.missionary, this.cannibal, this.boat);
+		// 左岸の状態
+		String leftM = "M".repeat(this.missionary);
+		String leftC = "C".repeat(this.cannibal);
+		String leftBoat = this.boat == 1 ? "<boat>" : "      ";
+
+		// 右岸の状態
+		int rightM = 3 - this.missionary;
+		int rightC = 3 - this.cannibal;
+		String rightM_str = "M".repeat(rightM);
+		String rightC_str = "C".repeat(rightC);
+		String rightBoat = this.boat == 0 ? "<boat>" : "      ";
+
+		// 左岸と右岸を整形（幅を揃える）
+		String left = String.format("%-6s %-6s %s", leftM, leftC, leftBoat);
+		String right = String.format("%s %-6s %-6s", rightBoat, rightM_str, rightC_str);
+
+		return String.format("%s | ~~~~~~~~ | %s", left, right);
 	}
 }

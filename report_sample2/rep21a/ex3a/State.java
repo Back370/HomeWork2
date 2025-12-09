@@ -3,14 +3,19 @@ import java.util.*;
 
 class State {
     static Map<String, List<String>> childNodeLists = Map.of(
-        "A", List.of("B", "C"),
-        "B", List.of("D", "E"),
-        "C", List.of("F", "G"));
+        "Root", List.of("L1", "L2", "L3"),
+        "L1", List.of("LL1", "LL2", "LL3"),
+        "L2", List.of("ML1", "ML2", "ML3"),
+        "L3", List.of("RL1", "RL2"));
     static Map<String, Float> values = Map.of(
-        "D", 3.0f,
-        "E", 2.0f,
-        "F", 1.0f,
-        "G", 4.0f
+        "LL1", -1.0f,
+        "LL2", -31.0f,
+        "LL3", -16.0f,
+        "ML1", -38.0f,
+        "ML2", -23.0f,
+        "ML3", -50.0f,
+        "RL1", -9.0f,
+        "RL2", 6.0f
     );
     String current;
     State(String current) {

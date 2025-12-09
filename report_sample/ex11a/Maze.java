@@ -1,4 +1,4 @@
-package ex1a;
+package report_sample.ex11a;
 
 import java.util.*;
 import java.util.stream.*;
