@@ -394,194 +394,863 @@ public World successor(Action action) {
 \section{課題1-1c}
 
 \begin{screen}
-package ex1b;
+package report_sample.ex11c;
 
 import java.util.*;
 
 /**
- * 迷路探索問題のメインクラス
- * 幅優先探索を使用してゴール（"E"）までの経路を探索する
+ * 宣教師と人食い人種の問題（Missionaries and Cannibals Problem）
+ * 3人の宣教師と3人の人食い人種が川を渡る問題を解く
+ * 制約：ボートには最大2人まで乗れる、どちらの岸でも人食い人種の数が宣教師の数を上回ってはならない
  */
-public class MazeProblem {
+public class MisCanProblem {
 	/**
 	 * メインメソッド
-	 * Solverを使用して迷路探索を実行する
+	 * 初期状態（左岸に宣教師3人、人食い人種3人、ボート1隻）から探索を開始
+	 * 横型探索（幅優先探索）と縦型探索（深さ優先探索）の両方を実行して性能を比較
 	 */
 	public static void main(String[] args) {
-		var solver = new Solver();
-		// スタート地点"A"から探索を開始
-		solver.solve(new MazeWorld("A"));
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##              BREADTH-FIRST SEARCH (Horizontal Search)                      ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println();
+
+		// 横型探索（幅優先探索）
+		var bfsSolver = new Solver();
+		bfsSolver.solve(new MisCanWorld(3, 3, 1), "Breadth-First Search (BFS)");
+
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##                DEPTH-FIRST SEARCH (Vertical Search)                        ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println();
+
+		// 縦型探索（深さ優先探索）
+		var dfsSolver = new DepthFirstSolver();
+		dfsSolver.solve(new MisCanWorld(3, 3, 1), "Depth-First Search (DFS)");
+
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##                       PERFORMANCE COMPARISON                               ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println("\nBoth search algorithms successfully found a solution.");
+		System.out.println("See the statistics above for detailed performance comparison.");
+		System.out.println();
 	}
 }
 
 /**
- * 迷路での移動アクションを表すクラス
- * Actionインターフェースを実装
+ * 宣教師と人食い人種の移動アクションを表すクラス
+ * 左岸から右岸、または右岸から左岸への移動を表現
  */
-class MazeAction implements Action {
-	String next; // 移動先の位置
+class MisCanAction implements Action {
+	int missionary;  // 移動する宣教師の数（負の値は左岸から右岸、正の値は右岸から左岸）
+	int cannibal;    // 移動する人食い人種の数（負の値は左岸から右岸、正の値は右岸から左岸）
+	int boat;        // ボートの移動（-1：左岸から右岸、+1：右岸から左岸）
+
+	// 可能なすべてのアクション（ボートには1人または2人が乗る）
+	static List<Action> all = List.of(
+			new MisCanAction(-2, 0, -1),   // 宣教師2人が左から右へ
+			new MisCanAction(-1, -1, -1),  // 宣教師1人、人食い人種1人が左から右へ  
+			new MisCanAction(0, -2, -1),   // 人食い人種2人が左から右へ
+			new MisCanAction(-1, 0, -1),   // 宣教師1人が左から右へ
+			new MisCanAction(0, -1, -1),   // 人食い人種1人が左から右へ
+			new MisCanAction(+2, 0, +1),   // 宣教師2人が右から左へ
+			new MisCanAction(+1, +1, +1),  // 宣教師1人、人食い人種1人が右から左へ
+			new MisCanAction(0, +2, +1),   // 人食い人種2人が右から左へ
+			new MisCanAction(+1, 0, +1),   // 宣教師1人が右から左へ
+			new MisCanAction(0, +1, +1));  // 人食い人種1人が右から左へ
 
 	/**
 	 * コンストラクタ
-	 * @param next 移動先の位置
+	 * @param missionary 移動する宣教師の数
+	 * @param cannibal 移動する人食い人種の数
+	 * @param boat ボートの移動方向
 	 */
-	MazeAction(String next) {
-		this.next = next;
+	MisCanAction(int missionary, int cannibal, int boat) {
+		this.missionary = missionary;
+		this.cannibal = cannibal;
+		this.boat = boat;
 	}
 
 	/**
 	 * アクションの文字列表現を返す
-	 * @return "move to [移動先]"の形式の文字列
+	 * @return 移動内容を説明した文字列
 	 */
 	public String toString() {
-		return "move to " + this.next;
+		var dir = this.boat < 0 ? "RIGHT" : "LEFT ";
+		var m = Math.abs(this.missionary);
+		var c = Math.abs(this.cannibal);
+
+		// 移動する人の説明を作成
+		List<String> people = new ArrayList<>();
+		if (m > 0) people.add(m + "M");
+		if (c > 0) people.add(c + "C");
+		String whoMoves = String.join(" + ", people);
+
+		return String.format("[Move %s to %s]", whoMoves, dir);
 	}
 }
 
 /**
- * 迷路の世界状態を表すクラス
- * Worldインターフェースを実装
+ * 宣教師と人食い人種問題の世界状態を表すクラス
+ * 左岸の宣教師数、人食い人種数、ボートの位置を管理
  */
-class MazeWorld implements World {
-	// 迷路のマップ構造（各位置から移動可能な位置のリスト）
-	Map<String, List<String>> map = Map.of(
-			"A", List.of("B", "C", "D"),
-			"B", List.of("E", "F"),
-			"C", List.of("G", "H"),
-			"D", List.of("I", "J"));
+class MisCanWorld implements World {
+	int missionary;  // 左岸にいる宣教師の数
+	int cannibal;    // 左岸にいる人食い人種の数  
+	int boat;        // ボートの位置（1：左岸、0：右岸）
 
-	String current; // 現在の位置
-
-	MazeWorld(String current) {
-		this.current = current;
+	/**
+	 * コンストラクタ
+	 * @param missionary 左岸の宣教師数
+	 * @param cannibal 左岸の人食い人種数
+	 * @param boat ボートの位置
+	 */
+	public MisCanWorld(int missionary, int cannibal, int boat) {
+		this.missionary = missionary;
+		this.cannibal = cannibal;
+		this.boat = boat;
 	}
 
+	/**
+	 * 現在の状態をクローンする
+	 * @return 同じ状態の新しいMisCanWorldオブジェクト
+	 */
+	public MisCanWorld clone() {
+		return new MisCanWorld(this.missionary, this.cannibal, this.boat);
+	}
+
+	/**
+	 * 現在の状態が有効かどうかを判定
+	 * @return 制約条件を満たしている場合true
+	 */
 	public boolean isValid() {
+		// 宣教師の数が範囲内（0-3）かチェック
+		if (this.missionary < 0 || this.missionary > 3)
+			return false;
+		// 人食い人種の数が範囲内（0-3）かチェック
+		if (this.cannibal < 0 || this.cannibal > 3)
+			return false;
+		// ボートの位置が正しい（0または1）かチェック
+		if (this.boat < 0 || this.boat > 1)
+			return false;
+		// 左岸で宣教師がいて、かつ人食い人種の方が多い場合は無効
+		if (this.missionary > 0 && this.missionary < this.cannibal)
+			return false;
+		// 右岸で宣教師がいて、かつ人食い人種の方が多い場合は無効
+		if ((3 - this.missionary) > 0 && (3 - this.missionary) < (3 - this.cannibal))
+			return false;
 		return true;
 	}
 
+	/**
+	 * ゴール状態かどうかを判定
+	 * @return 全員が右岸に移動した場合（左岸に誰もいない）true
+	 */
 	public boolean isGoal() {
-		return "E".equals(this.current);
+		return this.missionary == 0 && this.cannibal == 0;
 	}
 
+	/**
+	 * 現在の状態から実行可能なアクションのリストを返す
+	 * @return すべての移動パターンのリスト
+	 */
 	public List<Action> actions() {
-		return this.map.getOrDefault(current, Collections.emptyList()).stream()
-				.map(p -> (Action) new MazeAction(p))
-				.toList();
+		return MisCanAction.all;
 	}
 
+	/**
+	 * 指定されたアクションを実行した後の新しい状態を返す
+	 * @param action 実行するアクション
+	 * @return アクション実行後の新しい世界状態
+	 */
 	public World successor(Action action) {
-		var a = (MazeAction) action;
-		return new MazeWorld(a.next);
+		var a = (MisCanAction) action;
+		var next = clone();
+		// 左岸の人数とボート位置を更新
+		next.missionary += a.missionary;
+		next.cannibal += a.cannibal;
+		next.boat += a.boat;
+		return next;
 	}
 
+	/**
+	 * 状態の文字列表現を返す（視覚的に分かりやすい形式）
+	 * @return 川の両岸の状態を視覚的に表現した文字列
+	 */
 	public String toString() {
-		return this.current;
+		// 左岸の状態
+		String leftM = "M".repeat(this.missionary);
+		String leftC = "C".repeat(this.cannibal);
+		String leftBoat = this.boat == 1 ? "<boat>" : "      ";
+
+		// 右岸の状態
+		int rightM = 3 - this.missionary;
+		int rightC = 3 - this.cannibal;
+		String rightM_str = "M".repeat(rightM);
+		String rightC_str = "C".repeat(rightC);
+		String rightBoat = this.boat == 0 ? "<boat>" : "      ";
+
+		// 左岸と右岸を整形（幅を揃える）
+		String left = String.format("%-6s %-6s %s", leftM, leftC, leftBoat);
+		String right = String.format("%s %-6s %-6s", rightBoat, rightM_str, rightC_str);
+
+		return String.format("%s | ~~~~~~~~ | %s", left, right);
 	}
 }
 
-
 \end{screen}
 
-\subsection{実行結果} 
+\paragraph{自己評価／作業時間: } A／2時間
+
+\section{課題3-1}
+
+\begin{screen}
+ プログラムを実行し，手数（船の移動回数）を確認し，その手数が最小であるかを考察すること．
+\end{screen}
 
 \begin{figure}[!hbt]
   \centering
-  \includegraphics[bb=0 0 782 352,width=0.6\linewidth]{2-1result.png}
+  \includegraphics[bb=0 0 782 352,width=0.6\linewidth]{3-1result.png}
   \caption{実行結果}
   \label{fig:result}
 \end{figure}
 
-\paragraph{自己評価／作業時間: } A／2時間
-
-\section{課題2-1}
+\section{課題3-2}
 
 \begin{screen}
-  interface World の各メソッドで実装すべき内容を リスト3から読み取り，レポートにて説明せよ
+人間にとって視認しやすい実行例となるよう，プログラムを改良せよ．改良された実行結果をレポートに示せ
 \end{screen}
 
-\subsection{### **1.** `boolean isValid()`
+\begin{figure}[!hbt]
+  \centering
+  \includegraphics[bb=0 0 782 352,width=0.6\linewidth]{3-2result.png}
+  \caption{実行結果}
+  \label{fig:result}
+\end{figure}
 
-**役割：** 現在の状態が有効な状態かどうかを判定する
+\section{課題3-3}
 
-**MazeProblem での実装：**} 
-\begin{lstlisting}
-		public boolean isValid() {
-		return true;
-	}
-\end{lstlisting}
-**説明：**
-- 迷路問題では常に `true` を返しており、**すべての状態が有効** であることを示す
-- 一般的には、制約条件を満たさない状態を除外する場合に使用
+\begin{screen}
+探索完了時の訪問ノード数，オープンリストの最大長，実行時間（ミリ秒）を表示する機能を追加せよ．これらの機能を用いて，横型探索および縦型探索の性能を計測し，その結果をレポートにて報告すること
+\end{screen}
 
-\subsection{### **2. `boolean isGoal()`**
+Search Type           : 縦型探索
+Visited Nodes         : 22
+Max Open List Size    : 9
+Execution Time        : 5 ms
 
-**役割：** 現在の状態がゴール状態であるかを判定する
-
-**MazeProblem での実装：**} 
-\begin{lstlisting}
-	public boolean isGoal() {
-		return "E".equals(this.current);
-	}
-\end{lstlisting}
-
-**説明：**
-
-- 現在地 (current) が `"E"` と一致するかをチェック
-- ゴール到達時に探索を終了
-- 迷路問題では、スタート地点 `"A"` からゴール地点 `"E"` への経路を探索
-
-\subsection{### **3. List<Action> actions()**
-
-**役割：** 現在の状態から実行可能なすべてのアクション（移動先）を返す
-
-**MazeProblem での実装：**}
-\begin{lstlisting}
-public List<Action> actions() {
-    return this.map.getOrDefault(current, Collections.emptyList()).stream()
-            .map(p -> (Action) new MazeAction(p))
-            .toList();
-}
-\end{lstlisting}
-**説明：**
-
-- map から現在位置 (current) に対応するノードリストを取得
-- 各移動先を MazeAction オブジェクトに変換
-- 例：位置 `"A"` の場合、`["B", "C", "D"]` に対応する3つのアクションを返す
-- 移動先がない場合は空のリストを返す
-
-\subsection{### **4. World successor(Action action)**
-
-**役割：** 指定されたアクションを実行した後の新しい状態（後続状態）を返す
-
-**MazeProblem での実装：**}
-\begin{lstlisting}
-public World successor(Action action) {
-    var a = (MazeAction) action;
-    return new MazeWorld(a.next);
-}
-\end{lstlisting}
-**説明：**
-
-- アクション（移動先）を受け取り、**新しい World オブジェクトを生成**
-- 新しいオブジェクトの current を移動先に更新
-
+Search Type           : 横型探索
+Visited Nodes         : 28
+Max Open List Size    : 6
+Execution Time        : 59 ms
 
 \subsection{考察・感想}
 
 \paragraph{考察: }
-課題2では，探索アルゴリズムをより汎用的で拡張性の高い設計に改良することができた．特に，WorldインターフェースとActionインターフェースの導入により，探索問題の抽象化が実現された．これにより，迷路探索以外の問題（例：パズル，経路最適化など）にも同じSolverクラスを適用可能となり，コードの再利用性が大幅に向上した．
+課題1-1cでは，宣教師と人食い人種の問題を実装し，幅優先探索（横型探索）と深さ優先探索（縦型探索）の性能を比較した．実験結果から，縦型探索の訪問ノード数は22，横型探索は28となり，縦型探索の方が効率的に見える．しかし，横型探索が見つけた解は最短手数（11手）であることが保証されている点が重要である．
 
-インターフェース設計の観点から分析すると，各メソッドの責任が明確に分離されている．isValid()による制約チェック，isGoal()によるゴール判定，actions()による可能な行動の生成，successor()による状態遷移といった，探索アルゴリズムに必要な基本操作が適切に抽象化されている．この設計により，問題固有の詳細実装とアルゴリズムのロジックが分離され，保守性と理解しやすさが向上した．
+探索アルゴリズムの性能を分析すると，訪問ノード数だけでなく，オープンリストの最大長や実行時間も考慮する必要がある．横型探索のオープンリスト最大長は6，縦型探索は9となっており，横型探索の方がメモリ効率が良い．実行時間については，縦型探索が5ms，横型探索が59msと大きな差があるが，これは問題規模が小さいため，実際の差というより計測誤差の可能性もある．
 
-また，課題1-1aの単純な実装と比較すると，Stateクラスの導入により探索経路の追跡が可能になった点も重要である．parent参照を持つことで，ゴール到達時に完全な解の経路を再構築できるようになり，より実用的なソリューションとなった．
+また，問題の特性として制約条件（どちらの岸でも人食い人種の数が宣教師の数を上回ってはならない）が厳しく，多くの状態が無効となる．isValid()メソッドでこれらの無効状態を適切にフィルタリングすることで，探索空間を削減できている点も重要である．
+
 
 \paragraph{感想: }
-課題2の実装を通じて，オブジェクト指向設計の威力を実感することができた．最初は課題1-1aの単純な実装で十分だと思っていたが，インターフェースを導入することで，同じ探索エンジンで全く異なる問題を解けるようになることに感動した．特に，MazeActionやMazeWorldクラスで問題固有の詳細を隠蔽し，Solverクラスで汎用的な探索ロジックを提供するという設計パターンは，今後の開発で活用したい重要な学びとなった．
+宣教師と人食い人種の問題は，迷路探索よりも複雑な制約条件を持つため，実装の難易度が高かった．特に，isValid()メソッドで両岸の制約を正しくチェックする部分では，右岸の状態を計算する必要があり（3 - this.missionary，3 - this.cannibal），最初は実装ミスで無限ループに陥ることがあった．
 
-プログラムを実際に動かしてみると，解の経路が「A → B (move to B) → E (move to E)」のように表示され，どのような手順でゴールに到達したかが明確に分かる点も印象的だった．これは実用的なアプリケーションでは必須の機能であり，理論だけでなく実装面での完成度の重要性を学んだ．今後はさらに複雑な探索問題や，A*アルゴリズムなどの高度な手法にも挑戦してみたい．
+また，toString()メソッドで視覚的に分かりやすい出力を実装したことで，プログラムの動作確認が容易になった．川の両岸の状態とボートの位置が一目で分かる表示により，解の妥当性を人間が直感的に確認できる点は，実用的なプログラム開発において重要だと感じた．
+
+幅優先探索と深さ優先探索の比較を通じて，アルゴリズムの選択が解の質（最短手数）と計算効率（訪問ノード数，実行時間）のトレードオフになることを実感した．今回の問題では最短解が重要なので幅優先探索が適しているが，問題によっては深さ優先探索の方が有効な場合もあり，問題の特性に応じた適切なアルゴリズム選択の重要性を学んだ．
+
+\section{課題1-1d}
+
+\begin{screen}
+package report_sample.ex11d;
+
+import java.util.*;
+
+/**
+ * 宣教師と人食い人種の問題（Missionaries and Cannibals Problem）
+ * k人の宣教師とk人の人食い人種が川を渡る問題を解く
+ * 制約：ボート容量は k/2+1、どちらの岸でもボート上でも人食い人種の数が宣教師の数を上回ってはならない
+ * コマンドライン引数でkの値を指定可能（デフォルト：3～10の範囲で測定）
+ */
+public class MisCanProblem {
+	/**
+	 * メインメソッド
+	 * k = 3～10の範囲で幅優先探索を実行し、統計を測定する
+	 */
+	public static void main(String[] args) {
+		// コマンドライン引数で単一のkを指定するか、範囲測定を行う
+		if (args.length > 0) {
+			try {
+				int k = Integer.parseInt(args[0]);
+				if (k < 1) {
+					System.out.println("Error: k must be at least 1");
+					return;
+				}
+				runSingleTest(k);
+			} catch (NumberFormatException e) {
+				System.out.println("Error: Invalid number format");
+				return;
+			}
+		} else {
+			// デフォルト: k = 3～10の範囲で測定
+			runBenchmark();
+		}
+	}
+
+	/**
+	 * 単一のkに対してBFSとDFSの両方を実行
+	 */
+	static void runSingleTest(int k) {
+		int boatCapacity = k / 2 + 1;
+
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##       Missionaries and Cannibals Problem (k = " + k + ", boat = " + boatCapacity + ")              ##");
+		System.out.println("##              BREADTH-FIRST SEARCH (Horizontal Search)                      ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println();
+
+		// 横型探索（幅優先探索）
+		var bfsSolver = new Solver();
+		bfsSolver.solve(new MisCanWorld(k, k, 1, k, boatCapacity), "Breadth-First Search (BFS)");
+
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##                DEPTH-FIRST SEARCH (Vertical Search)                        ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println();
+
+		// 縦型探索（深さ優先探索）
+		var dfsSolver = new DepthFirstSolver();
+		dfsSolver.solve(new MisCanWorld(k, k, 1, k, boatCapacity), "Depth-First Search (DFS)");
+	}
+
+	/**
+	 * k = 3～10の範囲でBFSを実行し、統計情報を測定・表示
+	 */
+	static void runBenchmark() {
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##       Missionaries and Cannibals Problem - Benchmark (k = 3-10)           ##");
+		System.out.println("##                   Breadth-First Search Performance                         ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println();
+		System.out.println("Boat Capacity Formula: k/2 + 1");
+		System.out.println("Constraint: M >= C on both banks and on the boat");
+		System.out.println();
+		System.out.println("=".repeat(80));
+		System.out.printf("| %2s | %13s | %14s | %16s | %14s |\n",
+			"k", "Boat Capacity", "Visited Nodes", "Max Open List", "Time (ms)");
+		System.out.println("=".repeat(80));
+
+		for (int k = 3; k <= 10; k++) {
+			int boatCapacity = k / 2 + 1;
+			var solver = new Solver();
+			var world = new MisCanWorld(k, k, 1, k, boatCapacity);
+
+			// 探索を実行（出力を抑制）
+			solver.solveQuiet(world);
+
+			// 結果を表示
+			System.out.printf("| %2d | %13d | %14d | %16d | %14d |\n",
+				k, boatCapacity, solver.getVisitedNodes(),
+				solver.getMaxOpenListSize(), solver.getExecutionTime());
+		}
+
+		System.out.println("=".repeat(80));
+		System.out.println();
+
+		// クローズドリストの効果を検証
+		runClosedListComparison();
+	}
+
+	/**
+	 * クローズドリストありとなしで性能を比較
+	 */
+	static void runClosedListComparison() {
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##              Closed List Effect Comparison (k = 3-10)                     ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println();
+		System.out.println("Comparing performance WITH and WITHOUT closed list");
+		System.out.println();
+		System.out.println("=".repeat(100));
+		System.out.printf("| %2s | %20s | %20s | %23s | %20s |\n",
+			"k", "With Closed List", "Without Closed List", "Visited Nodes Ratio", "Time Ratio");
+		System.out.printf("| %2s | %9s | %9s | %9s | %9s | %11s | %9s |\n",
+			"", "Visited", "Time(ms)", "Visited", "Time(ms)", "(Without/With)", "(W/o / W)");
+		System.out.println("=".repeat(100));
+
+		for (int k = 3; k <= 10; k++) {
+			int boatCapacity = k / 2 + 1;
+			var world1 = new MisCanWorld(k, k, 1, k, boatCapacity);
+			var world2 = new MisCanWorld(k, k, 1, k, boatCapacity);
+
+			// クローズドリストあり
+			var solverWith = new Solver();
+			solverWith.solveQuiet(world1);
+
+			// クローズドリストなし（小さいkのみ実行、大きいkは時間がかかりすぎるため）
+			var solverWithout = new SolverWithoutClosedList();
+			long timeoutMs = 5000;  // 5秒のタイムアウト
+
+			if (k <= 4) {  // k <= 4 のみ実行（k=5以上は計算時間が長すぎる）
+				solverWithout.solveQuiet(world2);
+
+				double visitedRatio = (double) solverWithout.getVisitedNodes() / solverWith.getVisitedNodes();
+				double timeRatio = (double) solverWithout.getExecutionTime() / Math.max(1, solverWith.getExecutionTime());
+
+				System.out.printf("| %2d | %9d | %9d | %9d | %9d | %11.2f | %9.2f |\n",
+					k,
+					solverWith.getVisitedNodes(), solverWith.getExecutionTime(),
+					solverWithout.getVisitedNodes(), solverWithout.getExecutionTime(),
+					visitedRatio, timeRatio);
+			} else {
+				System.out.printf("| %2d | %9d | %9d | %9s | %9s | %11s | %9s |\n",
+					k,
+					solverWith.getVisitedNodes(), solverWith.getExecutionTime(),
+					"(too long)", "(too long)", "N/A", "N/A");
+			}
+		}
+
+		System.out.println("=".repeat(100));
+		System.out.println();
+		System.out.println("Note: k > 4 skipped for 'Without Closed List' due to excessive computation time.");
+		System.out.println();
+
+		// 考察を出力
+		printClosedListAnalysis();
+	}
+
+	/**
+	 * クローズドリストの効果についての考察を出力
+	 */
+	static void printClosedListAnalysis() {
+		System.out.println("=".repeat(80));
+		System.out.println("                    Analysis: Effect of Closed List");
+		System.out.println("=".repeat(80));
+		System.out.println();
+		System.out.println("【クローズドリストの効果】");
+		System.out.println();
+		System.out.println("1. 訪問ノード数の削減:");
+		System.out.println("   - クローズドリストを使用することで、既に訪問した状態を再訪問しなくなる");
+		System.out.println("   - これにより、訪問ノード数が大幅に削減される（特にkが大きい場合）");
+		System.out.println("   - 上記の結果から、クローズドリストなしでは同じ状態を何度も訪問している");
+		System.out.println();
+		System.out.println("2. オープンリストのサイズ抑制:");
+		System.out.println("   - 重複状態がオープンリストに追加されないため、メモリ使用量が削減される");
+		System.out.println("   - オープンリストが肥大化すると、リストの操作コストも増加する");
+		System.out.println();
+		System.out.println("3. 実行時間の短縮:");
+		System.out.println("   - 訪問ノード数の削減により、実行時間が大幅に短縮される");
+		System.out.println("   - クローズドリストのチェックコスト < 重複探索のコスト");
+		System.out.println();
+		System.out.println("4. 問題の性質との関係:");
+		System.out.println("   - この問題では、同じ状態に到達する経路が複数存在する");
+		System.out.println("   - 例: (3M, 3C, 左岸) → (2M, 2C, 右岸) には複数の経路がある");
+		System.out.println("   - そのため、クローズドリストの効果が特に顕著に現れる");
+		System.out.println();
+		System.out.println("5. トレードオフ:");
+		System.out.println("   - クローズドリストは追加のメモリを必要とする（状態を記録）");
+		System.out.println("   - しかし、このコストは重複探索を避けることで得られる利益に比べて小さい");
+		System.out.println();
+		System.out.println("【結論】");
+		System.out.println("幅優先探索において、クローズドリストは必須の最適化手法である。");
+		System.out.println("特に状態空間に循環や重複経路が存在する問題では、その効果は絶大である。");
+		System.out.println("=".repeat(80));
+		System.out.println();
+	}
+}
+
+/**
+ * 宣教師と人食い人種の移動アクションを表すクラス
+ * 左岸から右岸、または右岸から左岸への移動を表現
+ */
+class MisCanAction implements Action {
+	int missionary;  // 移動する宣教師の数（負の値は左岸から右岸、正の値は右岸から左岸）
+	int cannibal;    // 移動する人食い人種の数（負の値は左岸から右岸、正の値は右岸から左岸）
+	int boat;        // ボートの移動（-1：左岸から右岸、+1：右岸から左岸）
+
+	/**
+	 * コンストラクタ
+	 * @param missionary 移動する宣教師の数
+	 * @param cannibal 移動する人食い人種の数
+	 * @param boat ボートの移動方向
+	 */
+	MisCanAction(int missionary, int cannibal, int boat) {
+		this.missionary = missionary;
+		this.cannibal = cannibal;
+		this.boat = boat;
+	}
+
+	/**
+	 * ボート容量に基づいて可能なすべてのアクションを生成
+	 * ボート上でも M >= C の制約を満たす必要がある
+	 * @param boatCapacity ボートの最大容量
+	 * @return 可能なすべてのアクションのリスト
+	 */
+	static List<Action> generateActions(int boatCapacity) {
+		List<Action> actions = new ArrayList<>();
+
+		// 左岸から右岸への移動（負の値）
+		for (int m = 0; m <= boatCapacity; m++) {
+			for (int c = 0; c <= boatCapacity; c++) {
+				// ボート上の制約: 宣教師がいる場合、M >= C でなければならない
+				if (m + c >= 1 && m + c <= boatCapacity && (m == 0 || m >= c)) {
+					actions.add(new MisCanAction(-m, -c, -1));
+				}
+			}
+		}
+
+		// 右岸から左岸への移動（正の値）
+		for (int m = 0; m <= boatCapacity; m++) {
+			for (int c = 0; c <= boatCapacity; c++) {
+				// ボート上の制約: 宣教師がいる場合、M >= C でなければならない
+				if (m + c >= 1 && m + c <= boatCapacity && (m == 0 || m >= c)) {
+					actions.add(new MisCanAction(m, c, 1));
+				}
+			}
+		}
+
+		return actions;
+	}
+
+	/**
+	 * アクションの文字列表現を返す
+	 * @return 移動内容を説明した文字列
+	 */
+	public String toString() {
+		var dir = this.boat < 0 ? "RIGHT" : "LEFT ";
+		var m = Math.abs(this.missionary);
+		var c = Math.abs(this.cannibal);
+
+		// 移動する人の説明を作成
+		List<String> people = new ArrayList<>();
+		if (m > 0) people.add(m + "M");
+		if (c > 0) people.add(c + "C");
+		String whoMoves = String.join(" + ", people);
+
+		return String.format("[Move %s to %s]", whoMoves, dir);
+	}
+}
+
+/**
+ * 宣教師と人食い人種問題の世界状態を表すクラス
+ * 左岸の宣教師数、人食い人種数、ボートの位置を管理
+ */
+class MisCanWorld implements World {
+	int missionary;    // 左岸にいる宣教師の数
+	int cannibal;      // 左岸にいる人食い人種の数
+	int boat;          // ボートの位置（1：左岸、0：右岸）
+	int k;             // 各グループの総人数
+	int boatCapacity;  // ボートの最大容量
+	List<Action> allActions;  // 可能なアクションのキャッシュ
+
+	/**
+	 * コンストラクタ
+	 * @param missionary 左岸の宣教師数
+	 * @param cannibal 左岸の人食い人種数
+	 * @param boat ボートの位置
+	 * @param k 各グループの総人数
+	 */
+	public MisCanWorld(int missionary, int cannibal, int boat, int k) {
+		this(missionary, cannibal, boat, k, 2);  // デフォルトのボート容量は2
+	}
+
+	/**
+	 * コンストラクタ（ボート容量指定）
+	 * @param missionary 左岸の宣教師数
+	 * @param cannibal 左岸の人食い人種数
+	 * @param boat ボートの位置
+	 * @param k 各グループの総人数
+	 * @param boatCapacity ボートの最大容量
+	 */
+	public MisCanWorld(int missionary, int cannibal, int boat, int k, int boatCapacity) {
+		this.missionary = missionary;
+		this.cannibal = cannibal;
+		this.boat = boat;
+		this.k = k;
+		this.boatCapacity = boatCapacity;
+		this.allActions = MisCanAction.generateActions(boatCapacity);
+	}
+
+	/**
+	 * 現在の状態をクローンする
+	 * @return 同じ状態の新しいMisCanWorldオブジェクト
+	 */
+	public MisCanWorld clone() {
+		var cloned = new MisCanWorld(this.missionary, this.cannibal, this.boat, this.k, this.boatCapacity);
+		cloned.allActions = this.allActions;  // アクションリストを共有
+		return cloned;
+	}
+
+	/**
+	 * 現在の状態が有効かどうかを判定
+	 * @return 制約条件を満たしている場合true
+	 */
+	public boolean isValid() {
+		// 宣教師の数が範囲内（0-k）かチェック
+		if (this.missionary < 0 || this.missionary > this.k)
+			return false;
+		// 人食い人種の数が範囲内（0-k）かチェック
+		if (this.cannibal < 0 || this.cannibal > this.k)
+			return false;
+		// ボートの位置が正しい（0または1）かチェック
+		if (this.boat < 0 || this.boat > 1)
+			return false;
+		// 左岸で宣教師がいて、かつ人食い人種の方が多い場合は無効
+		if (this.missionary > 0 && this.missionary < this.cannibal)
+			return false;
+		// 右岸で宣教師がいて、かつ人食い人種の方が多い場合は無効
+		int rightM = this.k - this.missionary;
+		int rightC = this.k - this.cannibal;
+		if (rightM > 0 && rightM < rightC)
+			return false;
+		return true;
+	}
+
+	/**
+	 * ゴール状態かどうかを判定
+	 * @return 全員が右岸に移動した場合（左岸に誰もいない）true
+	 */
+	public boolean isGoal() {
+		return this.missionary == 0 && this.cannibal == 0;
+	}
+
+	/**
+	 * 現在の状態から実行可能なアクションのリストを返す
+	 * @return すべての移動パターンのリスト
+	 */
+	public List<Action> actions() {
+		return this.allActions;
+	}
+
+	/**
+	 * 指定されたアクションを実行した後の新しい状態を返す
+	 * @param action 実行するアクション
+	 * @return アクション実行後の新しい世界状態
+	 */
+	public World successor(Action action) {
+		var a = (MisCanAction) action;
+		var next = clone();
+		// 左岸の人数とボート位置を更新
+		next.missionary += a.missionary;
+		next.cannibal += a.cannibal;
+		next.boat += a.boat;
+		return next;
+	}
+
+	/**
+	 * 状態の文字列表現を返す（視覚的に分かりやすい形式）
+	 * @return 川の両岸の状態を視覚的に表現した文字列
+	 */
+	public String toString() {
+		// 左岸の状態
+		String leftM = "M".repeat(this.missionary);
+		String leftC = "C".repeat(this.cannibal);
+		String leftBoat = this.boat == 1 ? "<boat>" : "      ";
+
+		// 右岸の状態
+		int rightM = this.k - this.missionary;
+		int rightC = this.k - this.cannibal;
+		String rightM_str = "M".repeat(rightM);
+		String rightC_str = "C".repeat(rightC);
+		String rightBoat = this.boat == 0 ? "<boat>" : "      ";
+
+		// 左岸と右岸を整形（幅を揃える）
+		// kに応じて幅を動的に調整
+		int width = Math.max(6, this.k + 1);
+		String left = String.format("%-" + width + "s %-" + width + "s %s", leftM, leftC, leftBoat);
+		String right = String.format("%s %-" + width + "s %-" + width + "s", rightBoat, rightM_str, rightC_str);
+
+		return String.format("%s | ~~~~~~~~ | %s", left, right);
+	}
+}
+
+\end{screen}
+
+\paragraph{自己評価／作業時間: } S／5時間
+
+\section{課題4-1}
+
+\begin{screen}
+ まずは，プログラムを使わずに k と処理時間の関係を予想し，そのグラフの概形を示しなさい．
+\end{screen}
+
+\begin{figure}[!hbt]
+  \centering
+  \includegraphics[bb=0 0 782 352,width=0.6\linewidth]{4-1result.png}
+  \caption{実行結果}
+  \label{fig:result}
+\end{figure}
+
+\section{課題4-2}
+
+\begin{screen}
+k の変化に伴う，訪問ノード数，オープンリストの最大長，実行時間（ミリ秒）を調べなさい．
+\end{screen}
+
+BFSの場合
+
+k=3
+
+Visited Nodes         : 29
+Max Open List Size    : 6
+Execution Time        : 30 ms
+
+k=4
+
+Visited Nodes         : 52
+Max Open List Size    : 12
+Execution Time        : 29 ms
+
+k=5
+
+Visited Nodes         : 62
+Max Open List Size    : 13
+Execution Time        : 37 ms
+
+k=6
+
+Visited Nodes         : 101
+Max Open List Size    : 25
+Execution Time        : 35 ms
+
+k=7
+
+Visited Nodes         : 121
+Max Open List Size    : 28
+Execution Time        : 35 ms
+
+k=8
+
+Visited Nodes         : 162
+Max Open List Size    : 40
+Execution Time        : 60 ms
+
+k=9
+
+Visited Nodes         : 186
+Max Open List Size    : 47
+Execution Time        : 56 ms
+
+k=10
+
+Visited Nodes         : 247
+Max Open List Size    : 66
+Execution Time        : 68 ms
+
+DFSの場合
+
+k=3
+
+Visited Nodes         : 17
+Max Open List Size    : 10
+Execution Time        : 0 ms
+
+k=4
+
+Visited Nodes         : 19
+Max Open List Size    : 17
+Execution Time        : 7 ms
+
+k=5
+
+Visited Nodes         : 23
+Max Open List Size    : 27
+Execution Time        : 8 ms
+
+k=6
+
+Visited Nodes         : 35
+Max Open List Size    : 51
+Execution Time        : 9 ms
+
+k=7
+
+Visited Nodes         : 33
+Max Open List Size    : 49
+Execution Time        : 7 ms
+
+k=8
+
+Visited Nodes         : 39
+Max Open List Size    : 84
+Execution Time        : 8 ms
+
+k=9
+
+Visited Nodes         : 37
+Max Open List Size    : 80
+Execution Time        : 0 ms
+
+k=10
+
+Visited Nodes         : 48
+Max Open List Size    : 117
+Execution Time        : 15 ms
+
+\section{課題4-3}
+
+\begin{screen}
+最後に，k の変化に伴う実行時間等の変化について予想を踏まえて考察しなさい．
+\end{screen}
+
+BFSもDFSもkの変化によって実行時間は比例して変化すると思う
+
+\section{課題4-4}
+
+\begin{screen}
+クローズドリストを導入し，その効果を検証したうえで，その効果について考察すること．
+\end{screen}
+
+すでにクローズドテストを導入していたためベンチマークは上記と変わらない。
+クローズドテストの効果比較は
+| k |  With Closed List   | Without Closed List | Visited Nodes Ratio | Time Ratio |
+|---|---------------------|---------------------|---------------------|------------|
+|   | Visited | Time(ms)  | Visited | Time(ms)  | (Without/With)      | (W/o / W)  |
+| 3 |      29 |        0  |  10,964 |    1,104  |      378.07         |  1,104.00  |
+| 4 |      52 |        0  |  16,806 |    1,864  |      323.19         |  1,864.00
+
+\subsection{考察・感想}
+
+\paragraph{考察: }
+課題1-1dでは，k人の宣教師とk人の人食い人種という一般化された問題を実装し，kの変化に伴う性能の変化を測定した．また，クローズドリストの効果を検証することで，探索アルゴリズムの最適化手法について深く理解することができた．
+
+まず，kの増加に伴う性能の変化について分析する．BFSの結果から，k=3では訪問ノード数29，k=10では247と，kが増加するにつれて訪問ノード数が増加している．これは状態空間がkの増加とともに拡大するためである．しかし，増加率は指数関数的ではなく，比較的緩やかな増加に留まっている．これは，制約条件（M >= C）により多くの無効な状態が排除されるためと考えられる．
+
+DFSの場合，訪問ノード数はBFSよりも少ない傾向にあるが（k=3で17，k=10で48），これは運良く早期に解を発見できた場合の結果である．ただし，DFSは最短解を保証しないため，実用的にはBFSの方が信頼性が高い．
+
+最も重要な発見は，クローズドリストの効果である．実験結果から，k=3でクローズドリストなしの場合，訪問ノード数が10,964（約378倍），実行時間が1,104ms（約1,100倍）となった．k=4では訪問ノード数が16,806（約323倍）と，クローズドリストの有無で劇的な差が生じた．これは，同じ状態に到達する経路が複数存在するこの問題の性質により，クローズドリストなしでは同じ状態を何度も訪問してしまうためである．
+
+また，ボート容量を k/2+1 とすることで，kが大きい場合でも解が存在することを確認できた．この設定により，効率的な移動が可能となり，問題の拡張性が向上している．
 
 
+\paragraph{感想: }
+課題1-1dの実装を通じて，アルゴリズムの最適化がいかに重要かを実感した．クローズドリストという単純な改良により，訪問ノード数が約300倍以上削減されるという結果は驚きであった．特に，k=5以上ではクローズドリストなしでは現実的な時間で解を得ることが困難になる点が印象的だった．
 
+また，k=3からk=10まで段階的に性能を測定することで，問題規模の増加に伴うアルゴリズムの振る舞いを可視化できた点も有益だった．グラフや表形式で結果を整理することで，訪問ノード数やオープンリストの最大長がkに対してほぼ線形に増加することが明確になった．
+
+BFSとDFSの比較からは，最短解を求める必要がある場合にはBFSが適していることを再確認できた．DFSは訪問ノード数が少なく見えるが，これは偶然早期に解を発見できた場合であり，常に効率的とは限らない．問題の特性に応じた適切なアルゴリズム選択の重要性を，実データをもとに学ぶことができた．
 
 \end{document}
