@@ -1,5 +1,5 @@
 package report_sample.ex12a.search;
 
-public class Action {
-    
+public interface Action {
+	float cost();
 }

@@ -1,5 +1,5 @@
 package report_sample.ex12a.search;
 
-public class Heuristic {
-    
+public interface Heuristic {
+	float eval(State s);
 }
