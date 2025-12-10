@@ -1,22 +1,39 @@
-package report_sample.ex11c;
+package report_sample.ex11d;
 
 import java.util.*;
 
 /**
  * 宣教師と人食い人種の問題（Missionaries and Cannibals Problem）
- * 3人の宣教師と3人の人食い人種が川を渡る問題を解く
+ * k人の宣教師とk人の人食い人種が川を渡る問題を解く
  * 制約：ボートには最大2人まで乗れる、どちらの岸でも人食い人種の数が宣教師の数を上回ってはならない
+ * コマンドライン引数でkの値を指定可能（デフォルト：3）
  */
 public class MisCanProblem {
 	/**
 	 * メインメソッド
-	 * 初期状態（左岸に宣教師3人、人食い人種3人、ボート1隻）から探索を開始
+	 * 初期状態（左岸に宣教師k人、人食い人種k人、ボート1隻）から探索を開始
 	 * 横型探索（幅優先探索）と縦型探索（深さ優先探索）の両方を実行して性能を比較
 	 */
 	public static void main(String[] args) {
+		// コマンドライン引数またはデフォルト値からkを設定
+		int k = 3;  // デフォルトは3
+		if (args.length > 0) {
+			try {
+				k = Integer.parseInt(args[0]);
+				if (k < 1) {
+					System.out.println("Error: k must be at least 1");
+					return;
+				}
+			} catch (NumberFormatException e) {
+				System.out.println("Error: Invalid number format");
+				return;
+			}
+		}
+
 		System.out.println("\n\n");
 		System.out.println("################################################################################");
 		System.out.println("##                                                                            ##");
+		System.out.println("##       Missionaries and Cannibals Problem (k = " + k + ")                        ##");
 		System.out.println("##              BREADTH-FIRST SEARCH (Horizontal Search)                      ##");
 		System.out.println("##                                                                            ##");
 		System.out.println("################################################################################");
@@ -24,7 +41,7 @@ public class MisCanProblem {
 
 		// 横型探索（幅優先探索）
 		var bfsSolver = new Solver();
-		bfsSolver.solve(new MisCanWorld(3, 3, 1), "Breadth-First Search (BFS)");
+		bfsSolver.solve(new MisCanWorld(k, k, 1, k), "Breadth-First Search (BFS)");
 
 		System.out.println("\n\n");
 		System.out.println("################################################################################");
@@ -36,7 +53,7 @@ public class MisCanProblem {
 
 		// 縦型探索（深さ優先探索）
 		var dfsSolver = new DepthFirstSolver();
-		dfsSolver.solve(new MisCanWorld(3, 3, 1), "Depth-First Search (DFS)");
+		dfsSolver.solve(new MisCanWorld(k, k, 1, k), "Depth-First Search (DFS)");
 
 		System.out.println("\n\n");
 		System.out.println("################################################################################");
@@ -59,19 +76,6 @@ class MisCanAction implements Action {
 	int cannibal;    // 移動する人食い人種の数（負の値は左岸から右岸、正の値は右岸から左岸）
 	int boat;        // ボートの移動（-1：左岸から右岸、+1：右岸から左岸）
 
-	// 可能なすべてのアクション（ボートには1人または2人が乗る）
-	static List<Action> all = List.of(
-			new MisCanAction(-2, 0, -1),   // 宣教師2人が左から右へ
-			new MisCanAction(-1, -1, -1),  // 宣教師1人、人食い人種1人が左から右へ  
-			new MisCanAction(0, -2, -1),   // 人食い人種2人が左から右へ
-			new MisCanAction(-1, 0, -1),   // 宣教師1人が左から右へ
-			new MisCanAction(0, -1, -1),   // 人食い人種1人が左から右へ
-			new MisCanAction(+2, 0, +1),   // 宣教師2人が右から左へ
-			new MisCanAction(+1, +1, +1),  // 宣教師1人、人食い人種1人が右から左へ
-			new MisCanAction(0, +2, +1),   // 人食い人種2人が右から左へ
-			new MisCanAction(+1, 0, +1),   // 宣教師1人が右から左へ
-			new MisCanAction(0, +1, +1));  // 人食い人種1人が右から左へ
-
 	/**
 	 * コンストラクタ
 	 * @param missionary 移動する宣教師の数
@@ -82,6 +86,35 @@ class MisCanAction implements Action {
 		this.missionary = missionary;
 		this.cannibal = cannibal;
 		this.boat = boat;
+	}
+
+	/**
+	 * ボート容量に基づいて可能なすべてのアクションを生成
+	 * @param boatCapacity ボートの最大容量
+	 * @return 可能なすべてのアクションのリスト
+	 */
+	static List<Action> generateActions(int boatCapacity) {
+		List<Action> actions = new ArrayList<>();
+
+		// 左岸から右岸への移動（負の値）
+		for (int m = 0; m <= boatCapacity; m++) {
+			for (int c = 0; c <= boatCapacity; c++) {
+				if (m + c >= 1 && m + c <= boatCapacity) {
+					actions.add(new MisCanAction(-m, -c, -1));
+				}
+			}
+		}
+
+		// 右岸から左岸への移動（正の値）
+		for (int m = 0; m <= boatCapacity; m++) {
+			for (int c = 0; c <= boatCapacity; c++) {
+				if (m + c >= 1 && m + c <= boatCapacity) {
+					actions.add(new MisCanAction(m, c, 1));
+				}
+			}
+		}
+
+		return actions;
 	}
 
 	/**
@@ -108,20 +141,39 @@ class MisCanAction implements Action {
  * 左岸の宣教師数、人食い人種数、ボートの位置を管理
  */
 class MisCanWorld implements World {
-	int missionary;  // 左岸にいる宣教師の数
-	int cannibal;    // 左岸にいる人食い人種の数  
-	int boat;        // ボートの位置（1：左岸、0：右岸）
+	int missionary;    // 左岸にいる宣教師の数
+	int cannibal;      // 左岸にいる人食い人種の数
+	int boat;          // ボートの位置（1：左岸、0：右岸）
+	int k;             // 各グループの総人数
+	int boatCapacity;  // ボートの最大容量
+	List<Action> allActions;  // 可能なアクションのキャッシュ
 
 	/**
 	 * コンストラクタ
 	 * @param missionary 左岸の宣教師数
 	 * @param cannibal 左岸の人食い人種数
 	 * @param boat ボートの位置
+	 * @param k 各グループの総人数
 	 */
-	public MisCanWorld(int missionary, int cannibal, int boat) {
+	public MisCanWorld(int missionary, int cannibal, int boat, int k) {
+		this(missionary, cannibal, boat, k, 2);  // デフォルトのボート容量は2
+	}
+
+	/**
+	 * コンストラクタ（ボート容量指定）
+	 * @param missionary 左岸の宣教師数
+	 * @param cannibal 左岸の人食い人種数
+	 * @param boat ボートの位置
+	 * @param k 各グループの総人数
+	 * @param boatCapacity ボートの最大容量
+	 */
+	public MisCanWorld(int missionary, int cannibal, int boat, int k, int boatCapacity) {
 		this.missionary = missionary;
 		this.cannibal = cannibal;
 		this.boat = boat;
+		this.k = k;
+		this.boatCapacity = boatCapacity;
+		this.allActions = MisCanAction.generateActions(boatCapacity);
 	}
 
 	/**
@@ -129,7 +181,9 @@ class MisCanWorld implements World {
 	 * @return 同じ状態の新しいMisCanWorldオブジェクト
 	 */
 	public MisCanWorld clone() {
-		return new MisCanWorld(this.missionary, this.cannibal, this.boat);
+		var cloned = new MisCanWorld(this.missionary, this.cannibal, this.boat, this.k, this.boatCapacity);
+		cloned.allActions = this.allActions;  // アクションリストを共有
+		return cloned;
 	}
 
 	/**
@@ -137,11 +191,11 @@ class MisCanWorld implements World {
 	 * @return 制約条件を満たしている場合true
 	 */
 	public boolean isValid() {
-		// 宣教師の数が範囲内（0-3）かチェック
-		if (this.missionary < 0 || this.missionary > 3)
+		// 宣教師の数が範囲内（0-k）かチェック
+		if (this.missionary < 0 || this.missionary > this.k)
 			return false;
-		// 人食い人種の数が範囲内（0-3）かチェック
-		if (this.cannibal < 0 || this.cannibal > 3)
+		// 人食い人種の数が範囲内（0-k）かチェック
+		if (this.cannibal < 0 || this.cannibal > this.k)
 			return false;
 		// ボートの位置が正しい（0または1）かチェック
 		if (this.boat < 0 || this.boat > 1)
@@ -150,7 +204,9 @@ class MisCanWorld implements World {
 		if (this.missionary > 0 && this.missionary < this.cannibal)
 			return false;
 		// 右岸で宣教師がいて、かつ人食い人種の方が多い場合は無効
-		if ((3 - this.missionary) > 0 && (3 - this.missionary) < (3 - this.cannibal))
+		int rightM = this.k - this.missionary;
+		int rightC = this.k - this.cannibal;
+		if (rightM > 0 && rightM < rightC)
 			return false;
 		return true;
 	}
@@ -168,7 +224,7 @@ class MisCanWorld implements World {
 	 * @return すべての移動パターンのリスト
 	 */
 	public List<Action> actions() {
-		return MisCanAction.all;
+		return this.allActions;
 	}
 
 	/**
@@ -197,15 +253,17 @@ class MisCanWorld implements World {
 		String leftBoat = this.boat == 1 ? "<boat>" : "      ";
 
 		// 右岸の状態
-		int rightM = 3 - this.missionary;
-		int rightC = 3 - this.cannibal;
+		int rightM = this.k - this.missionary;
+		int rightC = this.k - this.cannibal;
 		String rightM_str = "M".repeat(rightM);
 		String rightC_str = "C".repeat(rightC);
 		String rightBoat = this.boat == 0 ? "<boat>" : "      ";
 
 		// 左岸と右岸を整形（幅を揃える）
-		String left = String.format("%-6s %-6s %s", leftM, leftC, leftBoat);
-		String right = String.format("%s %-6s %-6s", rightBoat, rightM_str, rightC_str);
+		// kに応じて幅を動的に調整
+		int width = Math.max(6, this.k + 1);
+		String left = String.format("%-" + width + "s %-" + width + "s %s", leftM, leftC, leftBoat);
+		String right = String.format("%s %-" + width + "s %-" + width + "s", rightBoat, rightM_str, rightC_str);
 
 		return String.format("%s | ~~~~~~~~ | %s", left, right);
 	}
