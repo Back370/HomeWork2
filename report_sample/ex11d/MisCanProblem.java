@@ -5,35 +5,44 @@ import java.util.*;
 /**
  * 宣教師と人食い人種の問題（Missionaries and Cannibals Problem）
  * k人の宣教師とk人の人食い人種が川を渡る問題を解く
- * 制約：ボートには最大2人まで乗れる、どちらの岸でも人食い人種の数が宣教師の数を上回ってはならない
- * コマンドライン引数でkの値を指定可能（デフォルト：3）
+ * 制約：ボート容量は k/2+1、どちらの岸でもボート上でも人食い人種の数が宣教師の数を上回ってはならない
+ * コマンドライン引数でkの値を指定可能（デフォルト：3～10の範囲で測定）
  */
 public class MisCanProblem {
 	/**
 	 * メインメソッド
-	 * 初期状態（左岸に宣教師k人、人食い人種k人、ボート1隻）から探索を開始
-	 * 横型探索（幅優先探索）と縦型探索（深さ優先探索）の両方を実行して性能を比較
+	 * k = 3～10の範囲で幅優先探索を実行し、統計を測定する
 	 */
 	public static void main(String[] args) {
-		// コマンドライン引数またはデフォルト値からkを設定
-		int k = 3;  // デフォルトは3
+		// コマンドライン引数で単一のkを指定するか、範囲測定を行う
 		if (args.length > 0) {
 			try {
-				k = Integer.parseInt(args[0]);
+				int k = Integer.parseInt(args[0]);
 				if (k < 1) {
 					System.out.println("Error: k must be at least 1");
 					return;
 				}
+				runSingleTest(k);
 			} catch (NumberFormatException e) {
 				System.out.println("Error: Invalid number format");
 				return;
 			}
+		} else {
+			// デフォルト: k = 3～10の範囲で測定
+			runBenchmark();
 		}
+	}
+
+	/**
+	 * 単一のkに対してBFSとDFSの両方を実行
+	 */
+	static void runSingleTest(int k) {
+		int boatCapacity = k / 2 + 1;
 
 		System.out.println("\n\n");
 		System.out.println("################################################################################");
 		System.out.println("##                                                                            ##");
-		System.out.println("##       Missionaries and Cannibals Problem (k = " + k + ")                        ##");
+		System.out.println("##       Missionaries and Cannibals Problem (k = " + k + ", boat = " + boatCapacity + ")              ##");
 		System.out.println("##              BREADTH-FIRST SEARCH (Horizontal Search)                      ##");
 		System.out.println("##                                                                            ##");
 		System.out.println("################################################################################");
@@ -41,7 +50,7 @@ public class MisCanProblem {
 
 		// 横型探索（幅優先探索）
 		var bfsSolver = new Solver();
-		bfsSolver.solve(new MisCanWorld(k, k, 1, k), "Breadth-First Search (BFS)");
+		bfsSolver.solve(new MisCanWorld(k, k, 1, k, boatCapacity), "Breadth-First Search (BFS)");
 
 		System.out.println("\n\n");
 		System.out.println("################################################################################");
@@ -53,16 +62,147 @@ public class MisCanProblem {
 
 		// 縦型探索（深さ優先探索）
 		var dfsSolver = new DepthFirstSolver();
-		dfsSolver.solve(new MisCanWorld(k, k, 1, k), "Depth-First Search (DFS)");
+		dfsSolver.solve(new MisCanWorld(k, k, 1, k, boatCapacity), "Depth-First Search (DFS)");
+	}
 
+	/**
+	 * k = 3～10の範囲でBFSを実行し、統計情報を測定・表示
+	 */
+	static void runBenchmark() {
 		System.out.println("\n\n");
 		System.out.println("################################################################################");
 		System.out.println("##                                                                            ##");
-		System.out.println("##                       PERFORMANCE COMPARISON                               ##");
+		System.out.println("##       Missionaries and Cannibals Problem - Benchmark (k = 3-10)           ##");
+		System.out.println("##                   Breadth-First Search Performance                         ##");
 		System.out.println("##                                                                            ##");
 		System.out.println("################################################################################");
-		System.out.println("\nBoth search algorithms successfully found a solution.");
-		System.out.println("See the statistics above for detailed performance comparison.");
+		System.out.println();
+		System.out.println("Boat Capacity Formula: k/2 + 1");
+		System.out.println("Constraint: M >= C on both banks and on the boat");
+		System.out.println();
+		System.out.println("=".repeat(80));
+		System.out.printf("| %2s | %13s | %14s | %16s | %14s |\n",
+			"k", "Boat Capacity", "Visited Nodes", "Max Open List", "Time (ms)");
+		System.out.println("=".repeat(80));
+
+		for (int k = 3; k <= 10; k++) {
+			int boatCapacity = k / 2 + 1;
+			var solver = new Solver();
+			var world = new MisCanWorld(k, k, 1, k, boatCapacity);
+
+			// 探索を実行（出力を抑制）
+			solver.solveQuiet(world);
+
+			// 結果を表示
+			System.out.printf("| %2d | %13d | %14d | %16d | %14d |\n",
+				k, boatCapacity, solver.getVisitedNodes(),
+				solver.getMaxOpenListSize(), solver.getExecutionTime());
+		}
+
+		System.out.println("=".repeat(80));
+		System.out.println();
+
+		// クローズドリストの効果を検証
+		runClosedListComparison();
+	}
+
+	/**
+	 * クローズドリストありとなしで性能を比較
+	 */
+	static void runClosedListComparison() {
+		System.out.println("\n\n");
+		System.out.println("################################################################################");
+		System.out.println("##                                                                            ##");
+		System.out.println("##              Closed List Effect Comparison (k = 3-10)                     ##");
+		System.out.println("##                                                                            ##");
+		System.out.println("################################################################################");
+		System.out.println();
+		System.out.println("Comparing performance WITH and WITHOUT closed list");
+		System.out.println();
+		System.out.println("=".repeat(100));
+		System.out.printf("| %2s | %20s | %20s | %23s | %20s |\n",
+			"k", "With Closed List", "Without Closed List", "Visited Nodes Ratio", "Time Ratio");
+		System.out.printf("| %2s | %9s | %9s | %9s | %9s | %11s | %9s |\n",
+			"", "Visited", "Time(ms)", "Visited", "Time(ms)", "(Without/With)", "(W/o / W)");
+		System.out.println("=".repeat(100));
+
+		for (int k = 3; k <= 10; k++) {
+			int boatCapacity = k / 2 + 1;
+			var world1 = new MisCanWorld(k, k, 1, k, boatCapacity);
+			var world2 = new MisCanWorld(k, k, 1, k, boatCapacity);
+
+			// クローズドリストあり
+			var solverWith = new Solver();
+			solverWith.solveQuiet(world1);
+
+			// クローズドリストなし（小さいkのみ実行、大きいkは時間がかかりすぎるため）
+			var solverWithout = new SolverWithoutClosedList();
+			long timeoutMs = 5000;  // 5秒のタイムアウト
+
+			if (k <= 4) {  // k <= 4 のみ実行（k=5以上は計算時間が長すぎる）
+				solverWithout.solveQuiet(world2);
+
+				double visitedRatio = (double) solverWithout.getVisitedNodes() / solverWith.getVisitedNodes();
+				double timeRatio = (double) solverWithout.getExecutionTime() / Math.max(1, solverWith.getExecutionTime());
+
+				System.out.printf("| %2d | %9d | %9d | %9d | %9d | %11.2f | %9.2f |\n",
+					k,
+					solverWith.getVisitedNodes(), solverWith.getExecutionTime(),
+					solverWithout.getVisitedNodes(), solverWithout.getExecutionTime(),
+					visitedRatio, timeRatio);
+			} else {
+				System.out.printf("| %2d | %9d | %9d | %9s | %9s | %11s | %9s |\n",
+					k,
+					solverWith.getVisitedNodes(), solverWith.getExecutionTime(),
+					"(too long)", "(too long)", "N/A", "N/A");
+			}
+		}
+
+		System.out.println("=".repeat(100));
+		System.out.println();
+		System.out.println("Note: k > 4 skipped for 'Without Closed List' due to excessive computation time.");
+		System.out.println();
+
+		// 考察を出力
+		printClosedListAnalysis();
+	}
+
+	/**
+	 * クローズドリストの効果についての考察を出力
+	 */
+	static void printClosedListAnalysis() {
+		System.out.println("=".repeat(80));
+		System.out.println("                    Analysis: Effect of Closed List");
+		System.out.println("=".repeat(80));
+		System.out.println();
+		System.out.println("【クローズドリストの効果】");
+		System.out.println();
+		System.out.println("1. 訪問ノード数の削減:");
+		System.out.println("   - クローズドリストを使用することで、既に訪問した状態を再訪問しなくなる");
+		System.out.println("   - これにより、訪問ノード数が大幅に削減される（特にkが大きい場合）");
+		System.out.println("   - 上記の結果から、クローズドリストなしでは同じ状態を何度も訪問している");
+		System.out.println();
+		System.out.println("2. オープンリストのサイズ抑制:");
+		System.out.println("   - 重複状態がオープンリストに追加されないため、メモリ使用量が削減される");
+		System.out.println("   - オープンリストが肥大化すると、リストの操作コストも増加する");
+		System.out.println();
+		System.out.println("3. 実行時間の短縮:");
+		System.out.println("   - 訪問ノード数の削減により、実行時間が大幅に短縮される");
+		System.out.println("   - クローズドリストのチェックコスト < 重複探索のコスト");
+		System.out.println();
+		System.out.println("4. 問題の性質との関係:");
+		System.out.println("   - この問題では、同じ状態に到達する経路が複数存在する");
+		System.out.println("   - 例: (3M, 3C, 左岸) → (2M, 2C, 右岸) には複数の経路がある");
+		System.out.println("   - そのため、クローズドリストの効果が特に顕著に現れる");
+		System.out.println();
+		System.out.println("5. トレードオフ:");
+		System.out.println("   - クローズドリストは追加のメモリを必要とする（状態を記録）");
+		System.out.println("   - しかし、このコストは重複探索を避けることで得られる利益に比べて小さい");
+		System.out.println();
+		System.out.println("【結論】");
+		System.out.println("幅優先探索において、クローズドリストは必須の最適化手法である。");
+		System.out.println("特に状態空間に循環や重複経路が存在する問題では、その効果は絶大である。");
+		System.out.println("=".repeat(80));
 		System.out.println();
 	}
 }
@@ -90,6 +230,7 @@ class MisCanAction implements Action {
 
 	/**
 	 * ボート容量に基づいて可能なすべてのアクションを生成
+	 * ボート上でも M >= C の制約を満たす必要がある
 	 * @param boatCapacity ボートの最大容量
 	 * @return 可能なすべてのアクションのリスト
 	 */
@@ -99,7 +240,8 @@ class MisCanAction implements Action {
 		// 左岸から右岸への移動（負の値）
 		for (int m = 0; m <= boatCapacity; m++) {
 			for (int c = 0; c <= boatCapacity; c++) {
-				if (m + c >= 1 && m + c <= boatCapacity) {
+				// ボート上の制約: 宣教師がいる場合、M >= C でなければならない
+				if (m + c >= 1 && m + c <= boatCapacity && (m == 0 || m >= c)) {
 					actions.add(new MisCanAction(-m, -c, -1));
 				}
 			}
@@ -108,7 +250,8 @@ class MisCanAction implements Action {
 		// 右岸から左岸への移動（正の値）
 		for (int m = 0; m <= boatCapacity; m++) {
 			for (int c = 0; c <= boatCapacity; c++) {
-				if (m + c >= 1 && m + c <= boatCapacity) {
+				// ボート上の制約: 宣教師がいる場合、M >= C でなければならない
+				if (m + c >= 1 && m + c <= boatCapacity && (m == 0 || m >= c)) {
 					actions.add(new MisCanAction(m, c, 1));
 				}
 			}

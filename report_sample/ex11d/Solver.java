@@ -46,10 +46,10 @@ class State {
 
 public class Solver {
 	// 統計情報
-	private int visitedNodes = 0;      // 訪問ノード数
-	private int maxOpenListSize = 0;   // オープンリストの最大長
-	private long executionTime = 0;    // 実行時間（ミリ秒）
-	private String searchType = "";    // 探索タイプ
+	protected int visitedNodes = 0;      // 訪問ノード数
+	protected int maxOpenListSize = 0;   // オープンリストの最大長
+	protected long executionTime = 0;    // 実行時間（ミリ秒）
+	protected String searchType = "";    // 探索タイプ
 
 	public void solve(World world) {
 		solve(world, "Breadth-First");  // デフォルトは横型探索
@@ -68,6 +68,28 @@ public class Solver {
 			printSolution(goal);
 			printStatistics();
 		}
+	}
+
+	public void solveQuiet(World world) {
+		this.searchType = "BFS";
+		resetStatistics();
+
+		var root = new State(null, null, world);
+		long startTime = System.currentTimeMillis();
+		var goal = search(root);
+		this.executionTime = System.currentTimeMillis() - startTime;
+	}
+
+	public int getVisitedNodes() {
+		return this.visitedNodes;
+	}
+
+	public int getMaxOpenListSize() {
+		return this.maxOpenListSize;
+	}
+
+	public long getExecutionTime() {
+		return this.executionTime;
 	}
 
 	void resetStatistics() {
@@ -171,5 +193,35 @@ class DepthFirstSolver extends Solver {
 	@Override
 	State get(List<State> list) {
 		return list.remove(list.size() - 1);  // 末尾から取り出す（LIFO）
+	}
+}
+
+/**
+ * クローズドリストを使用しないSolverクラス
+ * 訪問済み状態のチェックを行わないため、同じ状態を複数回訪問する可能性がある
+ */
+class SolverWithoutClosedList extends Solver {
+	@Override
+	State search(State root) {
+		var openList = toMutable(List.of(root));
+
+		while (openList.isEmpty() == false) {
+			// オープンリストの最大長を更新
+			if (openList.size() > maxOpenListSize) {
+				maxOpenListSize = openList.size();
+			}
+
+			var state = get(openList);
+			visitedNodes++;  // 訪問ノード数をカウント
+
+			if (state.isGoal())
+				return state;
+
+			// クローズドリストを使用しない（訪問済みチェックなし）
+			var children = state.children();
+			openList = concat(openList, children);
+		}
+
+		return null;
 	}
 }
