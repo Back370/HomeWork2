@@ -7,18 +7,21 @@
 #define MAX_CONTENT 256
 #define DATA_FILE "task8.dat"
 
+//task priority level
 typedef enum {
     LOW = 1,
     MEDIUM,
     HIGH
 } Priority;
 
+//data structures
 typedef struct {
     int year;
     int month;
     int day;
 } Date;
 
+//task structure
 typedef struct {
     int id;
     char content[MAX_CONTENT];
@@ -27,11 +30,13 @@ typedef struct {
     int is_active;
 } Task;
 
+//todo list structure
 typedef struct {
     Task tasks[MAX_TASKS];
     int task_count;
 } TodoList;
 
+//scary messages
 const char* scary_messages[] = {
     "Someone is watching you...",
     "This task will never end",
@@ -43,6 +48,7 @@ const char* scary_messages[] = {
     "I've been waiting"
 };
 
+// function prototypes
 void initialize_list(TodoList* list);
 void add_task(TodoList* list);
 void edit_task(TodoList* list);
