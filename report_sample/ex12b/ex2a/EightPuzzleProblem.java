@@ -15,16 +15,16 @@ class EightPuzzleProblem {
 		System.out.println();
 
 		System.out.println("=== Minimum Cost Search ===");
-		runSearch(new InformedSolver(Evaluator.minCost()), new EightPuzzleWorld(b));
+		runSearch(new ImprovedInformedSolver(Evaluator.minCost()), new EightPuzzleWorld(b));
 
 		System.out.println("\n=== Best-First Search ===");
-		runSearch(new InformedSolver(Evaluator.bestFirst(h)), new EightPuzzleWorld(b));
+		runSearch(new ImprovedInformedSolver(Evaluator.bestFirst(h)), new EightPuzzleWorld(b));
 
 		System.out.println("\n=== A* Search ===");
-		runSearch(new InformedSolver(Evaluator.aStar(h)), new EightPuzzleWorld(b));
+		runSearch(new ImprovedInformedSolver(Evaluator.aStar(h)), new EightPuzzleWorld(b));
 	}
 
-	private static void runSearch(InformedSolver solver, EightPuzzleWorld puzzle) {
+	private static void runSearch(ImprovedInformedSolver solver, EightPuzzleWorld puzzle) {
 		long startTime = System.currentTimeMillis();
 		solver.solve(puzzle);
 		long endTime = System.currentTimeMillis();
