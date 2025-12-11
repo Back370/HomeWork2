@@ -6,25 +6,48 @@ import report_sample.ex12a.search.*;
 
 class EightPuzzleProblem {
 	public static void main(String[] args) {
-		var h = new EightPuzzleHeuristic();
-		var search = new InformedSolver(Evaluator.aStar(h));
 		int[] b = { 2, 3, 5, 7, 1, 6, 4, 8, 0 };
 		var puzzle = new EightPuzzleWorld(b);
-		search.solve(puzzle);
+		var h = new EightPuzzleHeuristic();
+
+		System.out.println("Initial state:");
+		System.out.println(puzzle);
+		System.out.println();
+
+		System.out.println("=== Minimum Cost Search ===");
+		runSearch(new InformedSolver(Evaluator.minCost()), new EightPuzzleWorld(b));
+
+		System.out.println("\n=== Best-First Search ===");
+		runSearch(new InformedSolver(Evaluator.bestFirst(h)), new EightPuzzleWorld(b));
+
+		System.out.println("\n=== A* Search ===");
+		runSearch(new InformedSolver(Evaluator.aStar(h)), new EightPuzzleWorld(b));
+	}
+
+	private static void runSearch(InformedSolver solver, EightPuzzleWorld puzzle) {
+		long startTime = System.currentTimeMillis();
+		solver.solve(puzzle);
+		long endTime = System.currentTimeMillis();
+		long executionTime = endTime - startTime;
+		System.out.printf("Execution time: %d ms\n", executionTime);
 	}
 }
 
 class EightPuzzleAction implements Action {
-	// 必要な変数を宣言
+	int dRow;
+	int dCol;
+	String direction;
 
 	static List<Action> all = List.of(
-			new EightPuzzleAction(/* 空白上 */),
-			new EightPuzzleAction(/* 空白下 */),
-			new EightPuzzleAction(/* 空白左 */),
-			new EightPuzzleAction(/* 空白右 */));
+			new EightPuzzleAction(-1, 0, "up"),
+			new EightPuzzleAction(1, 0, "down"),
+			new EightPuzzleAction(0, -1, "left"),
+			new EightPuzzleAction(0, 1, "right"));
 
-	EightPuzzleAction(int row, int col) {
-		// 移動方向をセット
+	EightPuzzleAction(int dRow, int dCol, String direction) {
+		this.dRow = dRow;
+		this.dCol = dCol;
+		this.direction = direction;
 	}
 
 	public float cost() {
@@ -32,7 +55,7 @@ class EightPuzzleAction implements Action {
 	}
 
 	public String toString() {
-		return // 行為を文字列として返す
+		return "move " + direction;
 	}
 }
 
@@ -41,22 +64,32 @@ class EightPuzzleWorld implements World {
 	static EightPuzzleWorld goal = new EightPuzzleWorld(GOAL);
 
 	int[] board;
-	// その他必要な変数を宣言
+	int blankPos;
 
 	EightPuzzleWorld(int[] board) {
 		this.board = Arrays.copyOf(board, board.length);
+		this.blankPos = findBlankPosition();
+	}
+
+	private int findBlankPosition() {
+		for (int i = 0; i < board.length; i++) {
+			if (board[i] == 0) return i;
+		}
+		return -1;
 	}
 
 	public boolean equals(Object otherObj) {
-		return // このオブジェクトと otherObj が同値なら true を返す
+		if (!(otherObj instanceof EightPuzzleWorld)) return false;
+		var other = (EightPuzzleWorld) otherObj;
+		return Arrays.equals(this.board, other.board);
 	}
 
 	public EightPuzzleWorld clone() {
-		return // コピーを返す
+		return new EightPuzzleWorld(this.board);
 	}
 
 	public boolean isValid() {
-		return // 合法な状態なら true を返す
+		return blankPos != -1;
 	}
 
 	public boolean isGoal() {
@@ -71,22 +104,47 @@ class EightPuzzleWorld implements World {
 		var a = (EightPuzzleAction) action;
 		var next = clone();
 
-		// 次の状態 next を生成する
-		// 現在の状態に行為 a を適用した状態を生成すること
+		int blankRow = next.blankPos / 3;
+		int blankCol = next.blankPos % 3;
+		int newRow = blankRow + a.dRow;
+		int newCol = blankCol + a.dCol;
+
+		if (newRow < 0 || newRow >= 3 || newCol < 0 || newCol >= 3) {
+			next.blankPos = -1;
+			return next;
+		}
+
+		int newPos = newRow * 3 + newCol;
+		next.board[next.blankPos] = next.board[newPos];
+		next.board[newPos] = 0;
+		next.blankPos = newPos;
 
 		return next;
 	}
 
 	public String toString() {
-		// 1 2 3
-		// 4 5 6
-		// 7 8 0
-		return // 上記のように盤面を表す文字列を返す
+		var sb = new StringBuilder();
+		for (int i = 0; i < 9; i++) {
+			sb.append(board[i]);
+			if (i % 3 == 2) {
+				sb.append("\n");
+			} else {
+				sb.append(" ");
+			}
+		}
+		return sb.toString().trim();
 	}
 }
 
 class EightPuzzleHeuristic implements Heuristic {
 	public float eval(State s) {
-		return // h'(a) を返す
+		var w = (EightPuzzleWorld) s.world();
+		int misplaced = 0;
+		for (int i = 0; i < 9; i++) {
+			if (w.board[i] != 0 && w.board[i] != EightPuzzleWorld.GOAL[i]) {
+				misplaced++;
+			}
+		}
+		return misplaced;
 	}
 }
