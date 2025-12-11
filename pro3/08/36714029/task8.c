@@ -1,560 +1,505 @@
-/*
- * 加速度センサーを使用した振動検出LEDコントロールシステム
- * 学籍番号: 36714029
- * 
- * 機能:
- * - 加速度センサーで振動を検出
- * - 振動の強さに応じてLEDの明るさと色を変更
- * - 振動データをSDカードに記録
- * - 統計情報を計算して表示
- */
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <string.h>
 #include <time.h>
-#include <stdbool.h>
 
-// ピン定義 (ESP32 M5Stack StickC Plus用)
-#define LED_RED_PIN 10
-#define LED_GREEN_PIN 26
-#define LED_BLUE_PIN 36
-#define ACCEL_X_PIN 32  // アナログピン (GPIO32)
-#define ACCEL_Y_PIN 33  // アナログピン (GPIO33)
-#define ACCEL_Z_PIN 25  // アナログピン (GPIO25)
-#define BUTTON_PIN 37   // M5StickC Plusのボタン
+#define MAX_TASKS 100
+#define MAX_CONTENT 256
+#define DATA_FILE "task8.dat"
 
-// 閾値定義
-#define SHAKE_THRESHOLD 300
-#define STRONG_SHAKE_THRESHOLD 600
-#define SAMPLE_SIZE 10
-#define MAX_LOG_ENTRIES 1000
-
-// LEDモード
 typedef enum {
-  MODE_OFF = 0,
-  MODE_WEAK_SHAKE = 1,
-  MODE_MEDIUM_SHAKE = 2,
-  MODE_STRONG_SHAKE = 3
-} LEDMode;
+    LOW = 1,
+    MEDIUM,
+    HIGH
+} Priority;
 
-// 加速度データ構造体
 typedef struct {
-  int x;
-  int y;
-  int z;
-  float magnitude;
-  unsigned long timestamp;
-} AccelData;
+    int year;
+    int month;
+    int day;
+} Date;
 
-// RGB色構造体
 typedef struct {
-  int red;
-  int green;
-  int blue;
-} RGBColor;
+    int id;
+    char content[MAX_CONTENT];
+    Priority priority;
+    Date deadline;
+    int is_active;
+} Task;
 
-// 統計データ構造体
 typedef struct {
-  float average;
-  float maximum;
-  float minimum;
-  int count;
-  float total;
-} Statistics;
+    Task tasks[MAX_TASKS];
+    int task_count;
+} TodoList;
 
-// システム状態構造体
-typedef struct {
-  LEDMode currentMode;
-  Statistics stats;
-  AccelData history[SAMPLE_SIZE];
-  int historyIndex;
-  bool isLogging;
-  int logCount;
-} SystemState;
+const char* scary_messages[] = {
+    "Someone is watching you...",
+    "This task will never end",
+    "No time... No time...",
+    "Don't forget... Don't forget...",
+    "It's too late",
+    "Help me... Help me...",
+    "You cannot escape",
+    "I've been waiting"
+};
 
-// グローバル変数
-SystemState *systemState = NULL;
-FILE *logFile = NULL;
+void initialize_list(TodoList* list);
+void add_task(TodoList* list);
+void edit_task(TodoList* list);
+void display_monthly_tasks(TodoList* list);
+void display_today_tasks(TodoList* list);
+void save_to_file(TodoList* list);
+void load_from_file(TodoList* list);
+void get_current_date(Date* date);
+int compare_dates(Date* d1, Date* d2);
+void print_priority(Priority p);
+char* get_priority_string(Priority p);
+void corrupt_text(char* text);
+void show_scary_message();
+int is_same_month(Date* d1, Date* d2);
+int is_same_day(Date* d1, Date* d2);
+void print_menu();
+void print_separator(int is_cursed);
+void input_date(Date* date);
+int is_valid_date(Date* date);
+void clear_input_buffer();
 
-// 関数プロトタイプ宣言
-void initializeSystem(SystemState *state);
-void readAccelerometer(AccelData *data);
-float calculateMagnitude(int x, int y, int z);
-void updateHistory(SystemState *state, AccelData *data);
-LEDMode determineShakeLevel(float magnitude);
-void setLEDColor(RGBColor *color);
-void generateColorForMode(LEDMode mode, RGBColor *color);
-void updateStatistics(Statistics *stats, float value);
-void printStatistics(Statistics *stats);
-bool openLogFile(const char *filename);
-void writeToLogFile(AccelData *data, LEDMode mode);
-void closeLogFile(void);
-void handleButtonPress(SystemState *state);
-float getAverageFromHistory(SystemState *state);
-void resetStatistics(Statistics *stats);
-void displayStatus(SystemState *state, AccelData *currentData);
-void performCalibration(SystemState *state);
-int mapValue(int value, int inMin, int inMax, int outMin, int outMax);
-void blinkLED(int times, int delayMs);
-void smoothTransition(RGBColor *from, RGBColor *to, int steps);
+int main() {
+    TodoList list;
+    int choice;
 
-/*
- * 初期化関数
- * システム状態を初期化し、必要なリソースを確保
- */
-void initializeSystem(SystemState *state) {
-  // ピンモード設定
-  pinMode(LED_RED_PIN, OUTPUT);
-  pinMode(LED_GREEN_PIN, OUTPUT);
-  pinMode(LED_BLUE_PIN, OUTPUT);
-  pinMode(BUTTON_PIN, INPUT_PULLUP);
-  
-  // システム状態初期化
-  state->currentMode = MODE_OFF;
-  state->historyIndex = 0;
-  state->isLogging = true;
-  state->logCount = 0;
-  
-  // 統計データ初期化
-  resetStatistics(&state->stats);
-  
-  // 履歴データ初期化
-  for (int i = 0; i < SAMPLE_SIZE; i++) {
-    state->history[i].x = 0;
-    state->history[i].y = 0;
-    state->history[i].z = 0;
-    state->history[i].magnitude = 0.0;
-    state->history[i].timestamp = 0;
-  }
-  
-  // ログファイルを開く
-  if (openLogFile("shake_log.txt")) {
-    Serial.println("ログファイルを開きました");
-  } else {
-    Serial.println("警告: ログファイルを開けませんでした");
-    state->isLogging = false;
-  }
-  
-  // 起動確認のLED点滅
-  blinkLED(3, 200);
-}
+    srand(time(NULL));
 
-/*
- * 加速度センサーからデータを読み取る関数
- */
-void readAccelerometer(AccelData *data) {
-  // アナログピンから加速度データを読み取り
-  data->x = analogRead(ACCEL_X_PIN);
-  data->y = analogRead(ACCEL_Y_PIN);
-  data->z = analogRead(ACCEL_Z_PIN);
-  
-  // 中心値(512)からのオフセットを計算
-  data->x -= 512;
-  data->y -= 512;
-  data->z -= 512;
-  
-  // 加速度の大きさを計算
-  data->magnitude = calculateMagnitude(data->x, data->y, data->z);
-  
-  // タイムスタンプを記録
-  data->timestamp = millis();
-}
+    initialize_list(&list);
+    load_from_file(&list);
 
-/*
- * 3軸加速度から大きさ(ノルム)を計算する関数
- */
-float calculateMagnitude(int x, int y, int z) {
-  return sqrt((float)(x * x + y * y + z * z));
-}
+    printf("\n========================================\n");
+    printf("  Cursed Todo List Management System\n");
+    printf("========================================\n");
 
-/*
- * 加速度データを履歴に追加する関数（リングバッファ実装）
- */
-void updateHistory(SystemState *state, AccelData *data) {
-  // ポインタを使用して履歴配列を操作
-  AccelData *historySlot = &state->history[state->historyIndex];
-  
-  // データをコピー
-  historySlot->x = data->x;
-  historySlot->y = data->y;
-  historySlot->z = data->z;
-  historySlot->magnitude = data->magnitude;
-  historySlot->timestamp = data->timestamp;
-  
-  // インデックスを更新（リングバッファ）
-  state->historyIndex = (state->historyIndex + 1) % SAMPLE_SIZE;
-}
-
-/*
- * 振動の強さからLEDモードを決定する関数
- */
-LEDMode determineShakeLevel(float magnitude) {
-  if (magnitude < SHAKE_THRESHOLD) {
-    return MODE_OFF;
-  } else if (magnitude < STRONG_SHAKE_THRESHOLD) {
-    return MODE_MEDIUM_SHAKE;
-  } else {
-    return MODE_STRONG_SHAKE;
-  }
-}
-
-/*
- * RGB値に基づいてLEDの色を設定する関数
- */
-void setLEDColor(RGBColor *color) {
-  analogWrite(LED_RED_PIN, color->red);
-  analogWrite(LED_GREEN_PIN, color->green);
-  analogWrite(LED_BLUE_PIN, color->blue);
-}
-
-/*
- * LEDモードに応じた色を生成する関数
- */
-void generateColorForMode(LEDMode mode, RGBColor *color) {
-  switch (mode) {
-    case MODE_OFF:
-      color->red = 0;
-      color->green = 0;
-      color->blue = 0;
-      break;
-    
-    case MODE_WEAK_SHAKE:
-      color->red = 0;
-      color->green = 100;
-      color->blue = 255;
-      break;
-    
-    case MODE_MEDIUM_SHAKE:
-      color->red = 255;
-      color->green = 200;
-      color->blue = 0;
-      break;
-    
-    case MODE_STRONG_SHAKE:
-      color->red = 255;
-      color->green = 0;
-      color->blue = 0;
-      break;
-    
-    default:
-      color->red = 255;
-      color->green = 255;
-      color->blue = 255;
-      break;
-  }
-}
-
-/*
- * 統計データを更新する関数
- */
-void updateStatistics(Statistics *stats, float value) {
-  stats->count++;
-  stats->total += value;
-  stats->average = stats->total / stats->count;
-  
-  // 最大値・最小値の更新
-  if (stats->count == 1 || value > stats->maximum) {
-    stats->maximum = value;
-  }
-  if (stats->count == 1 || value < stats->minimum) {
-    stats->minimum = value;
-  }
-}
-
-/*
- * 統計情報をシリアルに出力する関数
- */
-void printStatistics(Statistics *stats) {
-  Serial.println("=== 振動統計情報 ===");
-  Serial.print("測定回数: ");
-  Serial.println(stats->count);
-  Serial.print("平均値: ");
-  Serial.println(stats->average, 2);
-  Serial.print("最大値: ");
-  Serial.println(stats->maximum, 2);
-  Serial.print("最小値: ");
-  Serial.println(stats->minimum, 2);
-  Serial.println("==================");
-}
-
-/*
- * ログファイルを開く関数
- */
-bool openLogFile(const char *filename) {
-  logFile = fopen(filename, "a");
-  if (logFile == NULL) {
-    return false;
-  }
-  
-  // ヘッダーを書き込み
-  fprintf(logFile, "\n=== 新しいセッション開始: %lu ===\n", millis());
-  fprintf(logFile, "タイムスタンプ,X,Y,Z,大きさ,モード\n");
-  fflush(logFile);
-  
-  return true;
-}
-
-/*
- * 加速度データをログファイルに書き込む関数
- */
-void writeToLogFile(AccelData *data, LEDMode mode) {
-  if (logFile == NULL) {
-    return;
-  }
-  
-  const char *modeStr;
-  switch (mode) {
-    case MODE_OFF: modeStr = "OFF"; break;
-    case MODE_WEAK_SHAKE: modeStr = "WEAK"; break;
-    case MODE_MEDIUM_SHAKE: modeStr = "MEDIUM"; break;
-    case MODE_STRONG_SHAKE: modeStr = "STRONG"; break;
-    default: modeStr = "UNKNOWN"; break;
-  }
-  
-  fprintf(logFile, "%lu,%d,%d,%d,%.2f,%s\n",
-          data->timestamp, data->x, data->y, data->z,
-          data->magnitude, modeStr);
-  fflush(logFile);
-}
-
-/*
- * ログファイルを閉じる関数
- */
-void closeLogFile(void) {
-  if (logFile != NULL) {
-    fprintf(logFile, "=== セッション終了 ===\n");
-    fclose(logFile);
-    logFile = NULL;
-  }
-}
-
-/*
- * ボタン押下時の処理関数
- */
-void handleButtonPress(SystemState *state) {
-  static unsigned long lastPressTime = 0;
-  unsigned long currentTime = millis();
-  
-  // チャタリング防止（200ms）
-  if (currentTime - lastPressTime < 200) {
-    return;
-  }
-  
-  if (digitalRead(BUTTON_PIN) == LOW) {
-    lastPressTime = currentTime;
-    
-    // 統計情報を表示
-    printStatistics(&state->stats);
-    
-    // LEDで確認
-    blinkLED(2, 100);
-  }
-}
-
-/*
- * 履歴から平均値を計算する関数
- */
-float getAverageFromHistory(SystemState *state) {
-  float sum = 0.0;
-  int count = 0;
-  
-  for (int i = 0; i < SAMPLE_SIZE; i++) {
-    if (state->history[i].timestamp > 0) {
-      sum += state->history[i].magnitude;
-      count++;
-    }
-  }
-  
-  return (count > 0) ? (sum / count) : 0.0;
-}
-
-/*
- * 統計データをリセットする関数
- */
-void resetStatistics(Statistics *stats) {
-  stats->average = 0.0;
-  stats->maximum = 0.0;
-  stats->minimum = 0.0;
-  stats->count = 0;
-  stats->total = 0.0;
-}
-
-/*
- * 現在の状態を表示する関数
- */
-void displayStatus(SystemState *state, AccelData *currentData) {
-  Serial.print("加速度: X=");
-  Serial.print(currentData->x);
-  Serial.print(" Y=");
-  Serial.print(currentData->y);
-  Serial.print(" Z=");
-  Serial.print(currentData->z);
-  Serial.print(" | 大きさ=");
-  Serial.print(currentData->magnitude, 2);
-  Serial.print(" | モード=");
-  Serial.println(state->currentMode);
-}
-
-/*
- * センサーキャリブレーションを実行する関数
- */
-void performCalibration(SystemState *state) {
-  Serial.println("キャリブレーション開始...");
-  Serial.println("デバイスを静止させてください");
-  
-  delay(2000);
-  
-  AccelData calibData;
-  for (int i = 0; i < 50; i++) {
-    readAccelerometer(&calibData);
-    delay(20);
-  }
-  
-  Serial.println("キャリブレーション完了");
-  blinkLED(5, 100);
-}
-
-/*
- * 値をマッピングする関数
- */
-int mapValue(int value, int inMin, int inMax, int outMin, int outMax) {
-  return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
-}
-
-/*
- * LEDを点滅させる関数
- */
-void blinkLED(int times, int delayMs) {
-  RGBColor white = {255, 255, 255};
-  RGBColor off = {0, 0, 0};
-  
-  for (int i = 0; i < times; i++) {
-    setLEDColor(&white);
-    delay(delayMs);
-    setLEDColor(&off);
-    delay(delayMs);
-  }
-}
-
-/*
- * 色を滑らかに遷移させる関数
- */
-void smoothTransition(RGBColor *from, RGBColor *to, int steps) {
-  for (int i = 0; i <= steps; i++) {
-    RGBColor intermediate;
-    intermediate.red = mapValue(i, 0, steps, from->red, to->red);
-    intermediate.green = mapValue(i, 0, steps, from->green, to->green);
-    intermediate.blue = mapValue(i, 0, steps, from->blue, to->blue);
-    
-    setLEDColor(&intermediate);
-    delay(10);
-  }
-}
-
-/*
- * セットアップ関数
- * システムの初期化を実行
- */
-void setup() {
-  // シリアル通信開始
-  Serial.begin(9600);
-  Serial.println("振動検出LEDシステム起動中...");
-  
-  // システム状態のメモリ確保
-  systemState = (SystemState *)malloc(sizeof(SystemState));
-  if (systemState == NULL) {
-    Serial.println("エラー: メモリ確保失敗");
     while (1) {
-      delay(1000);
+        print_menu();
+        printf("Please select: ");
+
+        if (scanf("%d", &choice) != 1) {
+            clear_input_buffer();
+            printf("\nInvalid input.\n");
+            continue;
+        }
+        clear_input_buffer();
+
+        switch (choice) {
+            case 1:
+                add_task(&list);
+                save_to_file(&list);
+                break;
+            case 2:
+                edit_task(&list);
+                save_to_file(&list);
+                break;
+            case 3:
+                display_monthly_tasks(&list);
+                break;
+            case 4:
+                display_today_tasks(&list);
+                break;
+            case 5:
+                printf("\nExiting program...\n");
+                printf("Goodbye... See you again...\n");
+                save_to_file(&list);
+                return 0;
+            default:
+                printf("\nInvalid choice.\n");
+        }
+
+        if (rand() % 5 == 0) {
+            show_scary_message();
+        }
     }
-  }
-  
-  // システム初期化
-  initializeSystem(systemState);
-  
-  // キャリブレーション実行
-  performCalibration(systemState);
-  
-  Serial.println("システム準備完了");
-  Serial.println("マイコンを振ってください！");
+
+    return 0;
 }
 
-/*
- * メインループ関数
- * 継続的にセンサーを監視しLEDを制御
- */
-void loop() {
-  static unsigned long lastDisplayTime = 0;
-  static unsigned long loopCount = 0;
-  
-  AccelData currentData;
-  RGBColor currentColor;
-  RGBColor targetColor;
-  
-  // 加速度センサーからデータを読み取り
-  readAccelerometer(&currentData);
-  
-  // 履歴に追加
-  updateHistory(systemState, &currentData);
-  
-  // 平均値を計算
-  float avgMagnitude = getAverageFromHistory(systemState);
-  
-  // 振動レベルを判定
-  LEDMode newMode = determineShakeLevel(avgMagnitude);
-  
-  // モードが変更された場合
-  if (newMode != systemState->currentMode) {
-    // 現在の色を取得
-    generateColorForMode(systemState->currentMode, &currentColor);
-    
-    // 新しい色を取得
-    generateColorForMode(newMode, &targetColor);
-    
-    // 滑らかに遷移
-    smoothTransition(&currentColor, &targetColor, 10);
-    
-    // モードを更新
-    systemState->currentMode = newMode;
-    
-    Serial.print("モード変更: ");
-    Serial.println(newMode);
-  } else {
-    // モードが変わらない場合は現在の色を設定
-    generateColorForMode(systemState->currentMode, &currentColor);
-    setLEDColor(&currentColor);
-  }
-  
-  // 統計を更新
-  updateStatistics(&systemState->stats, currentData.magnitude);
-  
-  // ログファイルに記録（ログが有効な場合）
-  if (systemState->isLogging && systemState->logCount < MAX_LOG_ENTRIES) {
-    writeToLogFile(&currentData, systemState->currentMode);
-    systemState->logCount++;
-    
-    // ログが上限に達した場合
-    if (systemState->logCount >= MAX_LOG_ENTRIES) {
-      Serial.println("ログが上限に達しました");
-      closeLogFile();
-      systemState->isLogging = false;
+void initialize_list(TodoList* list) {
+    list->task_count = 0;
+    for (int i = 0; i < MAX_TASKS; i++) {
+        list->tasks[i].is_active = 0;
+        list->tasks[i].id = 0;
     }
-  }
-  
-  // ボタン押下チェック
-  handleButtonPress(systemState);
-  
-  // 1秒ごとに状態を表示
-  if (millis() - lastDisplayTime > 1000) {
-    displayStatus(systemState, &currentData);
-    lastDisplayTime = millis();
-  }
-  
-  // ループカウンタを増加
-  loopCount++;
-  
-  // 短い待機
-  delay(50);
+}
+
+void print_menu() {
+    printf("\n========================================\n");
+    printf("1. Register Task\n");
+    printf("2. Edit Task\n");
+    printf("3. Display Monthly Tasks\n");
+    printf("4. Display Today's Tasks\n");
+    printf("5. Exit\n");
+    printf("========================================\n");
+}
+
+void print_separator(int is_cursed) {
+    if (is_cursed) {
+        printf("\033[31m");
+        for (int i = 0; i < 60; i++) {
+            printf("=");
+        }
+        printf("\033[0m\n");
+    } else {
+        for (int i = 0; i < 60; i++) {
+            printf("-");
+        }
+        printf("\n");
+    }
+}
+
+void add_task(TodoList* list) {
+    if (list->task_count >= MAX_TASKS) {
+        printf("\nCannot add more tasks.\n");
+        return;
+    }
+
+    Task* new_task = &list->tasks[list->task_count];
+    new_task->id = list->task_count + 1;
+    new_task->is_active = 1;
+
+    printf("\n========== Task Registration ==========\n");
+
+    printf("Enter task content: ");
+    fgets(new_task->content, MAX_CONTENT, stdin);
+    new_task->content[strcspn(new_task->content, "\n")] = 0;
+
+    int priority_choice;
+    printf("\nSelect task priority:\n");
+    printf("1. Low\n");
+    printf("2. Medium\n");
+    printf("3. High\n");
+    printf("Choice (1-3): ");
+    scanf("%d", &priority_choice);
+    clear_input_buffer();
+
+    switch (priority_choice) {
+        case 1:
+            new_task->priority = LOW;
+            break;
+        case 2:
+            new_task->priority = MEDIUM;
+            break;
+        case 3:
+            new_task->priority = HIGH;
+            break;
+        default:
+            new_task->priority = MEDIUM;
+    }
+
+    printf("\nEnter task deadline:\n");
+    input_date(&new_task->deadline);
+
+    if (rand() % 10 == 0) {
+        corrupt_text(new_task->content);
+        printf("\n\033[31mWARNING: Data corrupted...\033[0m\n");
+    }
+
+    list->task_count++;
+    printf("\nTask registered. (ID: %d)\n", new_task->id);
+}
+
+void edit_task(TodoList* list) {
+    if (list->task_count == 0) {
+        printf("\nNo tasks to edit.\n");
+        return;
+    }
+
+    printf("\n========== Task Edit ==========\n");
+    printf("Current task list:\n");
+
+    for (int i = 0; i < list->task_count; i++) {
+        if (list->tasks[i].is_active) {
+            printf("ID %d: %s [%s] (Deadline: %d/%d/%d)\n",
+                   list->tasks[i].id,
+                   list->tasks[i].content,
+                   get_priority_string(list->tasks[i].priority),
+                   list->tasks[i].deadline.year,
+                   list->tasks[i].deadline.month,
+                   list->tasks[i].deadline.day);
+        }
+    }
+
+    int edit_id;
+    printf("\nEnter task ID to edit: ");
+    scanf("%d", &edit_id);
+    clear_input_buffer();
+
+    Task* task = NULL;
+    for (int i = 0; i < list->task_count; i++) {
+        if (list->tasks[i].id == edit_id && list->tasks[i].is_active) {
+            task = &list->tasks[i];
+            break;
+        }
+    }
+
+    if (task == NULL) {
+        printf("\nTask ID not found.\n");
+        return;
+    }
+
+    printf("\n1. Edit content\n");
+    printf("2. Edit priority\n");
+    printf("3. Edit deadline\n");
+    printf("4. Delete task\n");
+    printf("Choice: ");
+
+    int edit_choice;
+    scanf("%d", &edit_choice);
+    clear_input_buffer();
+
+    switch (edit_choice) {
+        case 1:
+            printf("New content: ");
+            fgets(task->content, MAX_CONTENT, stdin);
+            task->content[strcspn(task->content, "\n")] = 0;
+            break;
+        case 2:
+            printf("New priority (1:Low, 2:Medium, 3:High): ");
+            int new_priority;
+            scanf("%d", &new_priority);
+            clear_input_buffer();
+            task->priority = (Priority)new_priority;
+            break;
+        case 3:
+            printf("New deadline:\n");
+            input_date(&task->deadline);
+            break;
+        case 4:
+            task->is_active = 0;
+            printf("Task deleted.\n");
+            return;
+        default:
+            printf("Invalid choice.\n");
+            return;
+    }
+
+    printf("Task updated.\n");
+}
+
+void display_monthly_tasks(TodoList* list) {
+    Date current_date;
+    get_current_date(&current_date);
+
+    int is_cursed = (rand() % 8 == 0);
+
+    printf("\n");
+    print_separator(is_cursed);
+    if (is_cursed) {
+        printf("\033[31m");
+    }
+    printf("     Monthly Task List (%d/%d)\n", current_date.year, current_date.month);
+    if (is_cursed) {
+        printf("\033[0m");
+    }
+    print_separator(is_cursed);
+
+    int found = 0;
+    Task* task_ptr;
+
+    for (int i = 0; i < list->task_count; i++) {
+        task_ptr = &list->tasks[i];
+
+        if (task_ptr->is_active && is_same_month(&task_ptr->deadline, &current_date)) {
+            found = 1;
+
+            if (is_cursed) {
+                printf("\033[31m");
+            }
+
+            printf("Date: %d/%d\n", task_ptr->deadline.month, task_ptr->deadline.day);
+            printf("  Content: %s\n", task_ptr->content);
+            printf("  Priority: ");
+            print_priority(task_ptr->priority);
+            printf("\n  Deadline: %d/%d/%d\n",
+                   task_ptr->deadline.year,
+                   task_ptr->deadline.month,
+                   task_ptr->deadline.day);
+
+            if (is_cursed) {
+                printf("\033[0m");
+            }
+
+            print_separator(0);
+        }
+    }
+
+    if (!found) {
+        printf("No tasks for this month.\n");
+        print_separator(0);
+    }
+
+    if (rand() % 6 == 0) {
+        printf("\n\033[31m");
+        printf("Date: ??/??\n");
+        printf("  Content: %s\n", scary_messages[rand() % 8]);
+        printf("  Priority: MAXIMUM\n");
+        printf("  Deadline: NOW\n");
+        printf("\033[0m");
+        print_separator(1);
+    }
+}
+
+void display_today_tasks(TodoList* list) {
+    Date current_date;
+    get_current_date(&current_date);
+
+    printf("\n========================================\n");
+    printf("  Today's Tasks (%d/%d/%d)\n",
+           current_date.year, current_date.month, current_date.day);
+    printf("========================================\n");
+
+    int found = 0;
+    int task_number = 1;
+
+    for (int i = 0; i < list->task_count; i++) {
+        Task* task = &list->tasks[i];
+
+        if (task->is_active && is_same_day(&task->deadline, &current_date)) {
+            found = 1;
+            printf("\n%d. %s\n", task_number++, task->content);
+            printf("   Priority: ");
+            print_priority(task->priority);
+            printf("\n");
+        }
+    }
+
+    if (!found) {
+        printf("\nNo tasks for today.\n");
+    }
+
+    printf("========================================\n");
+}
+
+void save_to_file(TodoList* list) {
+    FILE* file = fopen(DATA_FILE, "wb");
+    if (file == NULL) {
+        printf("Could not open file.\n");
+        return;
+    }
+
+    fwrite(&list->task_count, sizeof(int), 1, file);
+    fwrite(list->tasks, sizeof(Task), MAX_TASKS, file);
+
+    fclose(file);
+}
+
+void load_from_file(TodoList* list) {
+    FILE* file = fopen(DATA_FILE, "rb");
+    if (file == NULL) {
+        return;
+    }
+
+    fread(&list->task_count, sizeof(int), 1, file);
+    fread(list->tasks, sizeof(Task), MAX_TASKS, file);
+
+    fclose(file);
+}
+
+void get_current_date(Date* date) {
+    time_t t = time(NULL);
+    struct tm* tm_info = localtime(&t);
+
+    date->year = tm_info->tm_year + 1900;
+    date->month = tm_info->tm_mon + 1;
+    date->day = tm_info->tm_mday;
+}
+
+int compare_dates(Date* d1, Date* d2) {
+    if (d1->year != d2->year) return d1->year - d2->year;
+    if (d1->month != d2->month) return d1->month - d2->month;
+    return d1->day - d2->day;
+}
+
+int is_same_month(Date* d1, Date* d2) {
+    return (d1->year == d2->year && d1->month == d2->month);
+}
+
+int is_same_day(Date* d1, Date* d2) {
+    return (d1->year == d2->year && d1->month == d2->month && d1->day == d2->day);
+}
+
+void print_priority(Priority p) {
+    switch (p) {
+        case LOW:
+            printf("Low");
+            break;
+        case MEDIUM:
+            printf("Medium");
+            break;
+        case HIGH:
+            printf("High");
+            break;
+    }
+}
+
+char* get_priority_string(Priority p) {
+    switch (p) {
+        case LOW:
+            return "Low";
+        case MEDIUM:
+            return "Medium";
+        case HIGH:
+            return "High";
+        default:
+            return "Unknown";
+    }
+}
+
+void corrupt_text(char* text) {
+    int len = strlen(text);
+    for (int i = 0; i < len; i++) {
+        if (rand() % 3 == 0) {
+            text[i] = '?' + (rand() % 30);
+        }
+    }
+}
+
+void show_scary_message() {
+    printf("\n\033[31m");
+    printf("******************************************\n");
+    printf("  %s\n", scary_messages[rand() % 8]);
+    printf("******************************************\n");
+    printf("\033[0m\n");
+}
+
+void input_date(Date* date) {
+    do {
+        printf("Enter year: ");
+        scanf("%d", &date->year);
+        printf("Enter month (1-12): ");
+        scanf("%d", &date->month);
+        printf("Enter day (1-31): ");
+        scanf("%d", &date->day);
+        clear_input_buffer();
+
+        if (!is_valid_date(date)) {
+            printf("\nInvalid date. Please try again.\n");
+        }
+    } while (!is_valid_date(date));
+}
+
+int is_valid_date(Date* date) {
+    if (date->year < 1900 || date->year > 2100) return 0;
+    if (date->month < 1 || date->month > 12) return 0;
+
+    int days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+    if ((date->year % 4 == 0 && date->year % 100 != 0) || (date->year % 400 == 0)) {
+        days_in_month[1] = 29;
+    }
+
+    if (date->day < 1 || date->day > days_in_month[date->month - 1]) return 0;
+
+    return 1;
+}
+
+void clear_input_buffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
 }
