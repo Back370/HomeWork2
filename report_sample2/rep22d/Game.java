@@ -2,11 +2,23 @@ import java.util.*;
 
 public class Game {
 	public static void main(String[] args) {
-		var p0 = new RandomPlayer();
-		var p1 = new MyPlayerV1(new Eval(), 6);
-		var g = new Game(p0, p1);
-		g.play();
-		g.printResult();
+		System.out.println("=== Comparison Test: MyPlayerV1 (without Move Ordering) vs MyPlayerV2 (with Move Ordering) ===\n");
+
+		// Test 1: MyPlayerV1 (without Move Ordering)
+		System.out.println("--- Game 1: RandomPlayer vs MyPlayerV1 (without Move Ordering) ---");
+		var p0_1 = new RandomPlayer();
+		var p1_1 = new MyPlayerV1(new Eval(), 6);
+		var g1 = new Game(p0_1, p1_1);
+		g1.play();
+		g1.printResult();
+
+		System.out.println("\n\n--- Game 2: RandomPlayer vs MyPlayerV2 (with Move Ordering) ---");
+		// Test 2: MyPlayerV2 (with Move Ordering)
+		var p0_2 = new RandomPlayer();
+		var p1_2 = new MyPlayerV2(new Eval(), 6);
+		var g2 = new Game(p0_2, p1_2);
+		g2.play();
+		g2.printResult();
 	}
 
 	State state;

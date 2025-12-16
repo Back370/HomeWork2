@@ -4,6 +4,7 @@ public class MyPlayerV1 extends Player {
 	Eval eval;
 	int depthLimit;
 	Move move;
+	int visitedNodes;
 
 	public MyPlayerV1(Eval eval, int depthLimit) {
 		super("MyPlayerV1_" + depthLimit);
@@ -12,11 +13,15 @@ public class MyPlayerV1 extends Player {
 	}
 
 	Move search(State state) {
+		this.visitedNodes = 0;
 		negamax(state, NEGATIVE_INFINITY, POSITIVE_INFINITY, this.depthLimit, 1);
+		System.out.println(this.name + " visited nodes: " + this.visitedNodes);
 		return this.move;
 	}
 
 	float negamax(State state, float alpha, float beta, int depthLimit, int color) {
+		this.visitedNodes++;
+
 		if (isTerminal(state, depthLimit)) {
 			return color * this.eval.value(state);
 		}
