@@ -86,3 +86,62 @@ Note: Without cycle avoidance is too slow for minimum cost search, skipped.
 
 === Best-First Search ===
 Without cycle avoidance:
+Search stopped (limit reached: 50000 visits)
+visited: 50000, max length: 73240
+
+With cycle avoidance:
+Solution found (path length: 17 steps)
+visited: 53, max length: 39
+
+削減率の計算不可（繰り返し回避なしが上限に達しました）
+参考: 訪問ノード数は 50000 から 53 に削減されました
+
+=== A* Search ===
+Without cycle avoidance:
+Search stopped (limit reached: 50000 visits)
+visited: 50000, max length: 92904
+
+With cycle avoidance:
+Solution found (path length: 17 steps)
+visited: 1035, max length: 668
+
+削減率の計算不可（繰り返し回避なしが上限に達しました）
+参考: 訪問ノード数は 50000 から 1035 に削減されました
+
+========================================
+Initial state: Random n=300
+========================================
+5 7 1
+2 0 3
+8 6 4
+
+=== Minimum Cost Search ===
+With cycle avoidance:
+Solution found (path length: 20 steps)
+visited: 57426, max length: 23085
+Note: Without cycle avoidance is too slow for minimum cost search, skipped.
+
+=== Best-First Search ===
+Without cycle avoidance:
+Search stopped (limit reached: 50000 visits)
+visited: 50000, max length: 75008
+
+With cycle avoidance:
+Solution found (path length: 54 steps)
+visited: 516, max length: 348
+
+削減率の計算不可（繰り返し回避なしが上限に達しました）
+参考: 訪問ノード数は 50000 から 516 に削減されました
+
+=== A* Search ===
+Without cycle avoidance:
+Search stopped (limit reached: 50000 visits)
+visited: 50000, max length: 92429
+
+With cycle avoidance:
+Solution found (path length: 20 steps)
+visited: 3964, max length: 2475
+
+削減率の計算不可（繰り返し回避なしが上限に達しました）
+参考: 訪問ノード数は 50000 から 3964 に削減されました
+
