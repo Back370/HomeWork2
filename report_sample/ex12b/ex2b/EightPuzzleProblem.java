@@ -1,4 +1,4 @@
-package report_sample.ex12b.ex2a;
+package report_sample.ex12b.ex2b;
 
 import java.util.*;
 

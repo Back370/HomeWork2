@@ -1,6 +1,7 @@
-package report_sample.ex12c.ex2a;
+package report_sample.ex12d.ex2d;
 
 import java.util.*;
+import java.io.*;
 
 import report_sample.ex12a.search.*;
 
@@ -8,7 +9,7 @@ class EightPuzzleProblem {
 	// 学生番号を設定してください
 	static final int STUDENT_ID = 12345678; // ここに実際の学生番号を入れてください
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws IOException {
 		// 元の例
 		int[] example = { 2, 3, 5, 7, 1, 6, 4, 8, 0 };
 
@@ -17,11 +18,23 @@ class EightPuzzleProblem {
 		int[] init200 = generateRandomState(200);
 		int[] init300 = generateRandomState(300);
 
-		// 全ての初期状態
-		int[][] initialStates = { example, init100, init200, init300 };
-		String[] labels = { "Example", "Random n=100", "Random n=200", "Random n=300" };
+		// 難しい8パズルの例
+		int[] difficult = { 8, 6, 7, 5, 0, 4, 2, 3, 1 };
 
-		var h = new EightPuzzleHeuristic();
+		// 全ての初期状態
+		int[][] initialStates = { example, init100, init200, init300, difficult };
+		String[] labels = { "Example", "Random n=100", "Random n=200", "Random n=300", "Difficult Example" };
+
+		// 3つのヒューリスティック関数
+		var h1 = new HeuristicH1(); // h'1: 弱い（ミスプレースタイル数 / 2）
+		var h2 = new HeuristicH2(); // h'2: 中程度（ミスプレースタイル数）
+		var h3 = new HeuristicH3(); // h'3: 強い（マンハッタン距離）
+
+		Heuristic[] heuristics = { h1, h2, h3 };
+		String[] heuristicNames = { "h'1 (Misplaced/2)", "h'2 (Misplaced)", "h'3 (Manhattan)" };
+
+		// 出力ファイルの準備
+		PrintWriter writer = new PrintWriter(new FileWriter("report_sample/ex12d/8-puzzle-ex12d.txt"));
 
 		for (int i = 0; i < initialStates.length; i++) {
 			System.out.println("========================================");
@@ -31,72 +44,75 @@ class EightPuzzleProblem {
 			System.out.println(puzzle);
 			System.out.println();
 
-			// 最小コスト優先探索（繰り返し回避ありのみ）
-			System.out.println("=== Minimum Cost Search ===");
-			runWithCycleAvoidanceOnly(Evaluator.minCost(), new EightPuzzleWorld(initialStates[i]));
+			writer.println("========================================");
+			writer.println("Initial state: " + labels[i]);
+			writer.println("========================================");
+			writer.println(puzzle);
+			writer.println();
 
-			// 最良優先探索
-			System.out.println("\n=== Best-First Search ===");
-			runComparison(Evaluator.bestFirst(h), new EightPuzzleWorld(initialStates[i]));
-
-			// A*アルゴリズム
-			System.out.println("\n=== A* Search ===");
-			runComparison(Evaluator.aStar(h), new EightPuzzleWorld(initialStates[i]));
+			// 各ヒューリスティック関数でA*探索を実行
+			for (int j = 0; j < heuristics.length; j++) {
+				System.out.println("\n=== A* Search with " + heuristicNames[j] + " ===");
+				writer.println("=== A* Search with " + heuristicNames[j] + " ===");
+				runAStarWithMetrics(heuristics[j], heuristicNames[j], new EightPuzzleWorld(initialStates[i]), writer);
+			}
 
 			System.out.println();
+			writer.println();
 		}
+
+		writer.close();
+		System.out.println("Results written to report_sample/ex12d/8-puzzle-ex12d.txt");
 	}
 
-	private static void runWithCycleAvoidanceOnly(Evaluator eval, EightPuzzleWorld puzzle) {
-		System.out.println("With cycle avoidance:");
-		var solver = new ImprovedInformedSolver(eval);
+	private static void runAStarWithMetrics(Heuristic h, String hName, EightPuzzleWorld puzzle, PrintWriter writer) {
+		var eval = Evaluator.aStar(h);
+		var solver = new MetricInformedSolver(eval);
+
+		long startTime = System.currentTimeMillis();
 		var goal = solver.search(new State(null, null, puzzle.clone()));
+		long endTime = System.currentTimeMillis();
+		long executionTime = endTime - startTime;
+
 		if (goal != null) {
-			System.out.printf("Solution found (path length: %d steps)\n", (int)goal.cost());
+			int pathLength = (int) goal.cost();
+			System.out.printf("Solution found (path length: %d steps)\n", pathLength);
+			System.out.printf("Visited nodes: %d\n", solver.visited);
+			System.out.printf("Max open list size: %d\n", solver.maxOpenLen);
+			System.out.printf("Max closed list size: %d\n", solver.maxClosedLen);
+			System.out.printf("Execution time: %d ms\n", executionTime);
+
+			writer.printf("Solution found (path length: %d steps)\n", pathLength);
+			writer.printf("Visited nodes: %d\n", solver.visited);
+			writer.printf("Max open list size: %d\n", solver.maxOpenLen);
+			writer.printf("Max closed list size: %d\n", solver.maxClosedLen);
+			writer.printf("Execution time: %d ms\n", executionTime);
+			writer.println();
+			writer.println("Solution path:");
+			printSolutionToWriter(goal, writer);
+			writer.println();
 		} else {
 			System.out.println("No solution found");
+			writer.println("No solution found");
 		}
-		System.out.printf("visited: %d, max length: %d\n", solver.visited, solver.maxLen);
-		System.out.println("Note: Without cycle avoidance is too slow for minimum cost search, skipped.");
+		System.out.println();
 	}
 
-	private static void runComparison(Evaluator eval, EightPuzzleWorld puzzle) {
-		final long MAX_VISITS = 50000; // 最大訪問ノード数
-
-		// 繰り返し回避なし
-		System.out.println("Without cycle avoidance:");
-		var solverWithout = new LimitedInformedSolver(eval, MAX_VISITS);
-		var goalWithout = solverWithout.search(new State(null, null, puzzle.clone()));
-		long visitedWithout = solverWithout.visited;
-		if (goalWithout != null) {
-			System.out.printf("Solution found (path length: %d steps)\n", (int)goalWithout.cost());
-		} else if (solverWithout.limitReached) {
-			System.out.printf("Search stopped (limit reached: %d visits)\n", MAX_VISITS);
-		} else {
-			System.out.println("No solution found");
+	private static void printSolutionToWriter(State goal, PrintWriter writer) {
+		var list = new ArrayList<State>();
+		while (goal != null) {
+			list.add(0, goal);
+			goal = goal.parent();
 		}
-		System.out.printf("visited: %d, max length: %d\n", solverWithout.visited, solverWithout.maxLen);
 
-		// 繰り返し回避あり
-		System.out.println("\nWith cycle avoidance:");
-		var solverWith = new ImprovedInformedSolver(eval);
-		var goalWith = solverWith.search(new State(null, null, puzzle.clone()));
-		long visitedWith = solverWith.visited;
-		if (goalWith != null) {
-			System.out.printf("Solution found (path length: %d steps)\n", (int)goalWith.cost());
-		} else {
-			System.out.println("No solution found");
-		}
-		System.out.printf("visited: %d, max length: %d\n", solverWith.visited, solverWith.maxLen);
-
-		// 削減率を計算
-		if (visitedWithout >= MAX_VISITS) {
-			System.out.printf("\n削減率の計算不可（繰り返し回避なしが上限に達しました）\n");
-			System.out.printf("参考: 訪問ノード数は %d から %d に削減されました\n", visitedWithout, visitedWith);
-		} else {
-			double reductionRate = 1.0 - ((double) visitedWith / (double) visitedWithout);
-			System.out.printf("\n削減率 = 1 - %d / %d = %.4f (%.2f%%)\n",
-				visitedWith, visitedWithout, reductionRate, reductionRate * 100);
+		for (int i = 0; i < list.size(); i++) {
+			State s = list.get(i);
+			writer.printf("Step %d (cost=%.0f):\n", i, s.cost());
+			writer.println(s.world());
+			if (s.action() != null) {
+				writer.println("Action: " + s.action());
+			}
+			writer.println();
 		}
 	}
 
@@ -332,7 +348,28 @@ class EightPuzzleWorld implements World {
 	}
 }
 
-class EightPuzzleHeuristic implements Heuristic {
+/**
+ * ヒューリスティック関数 h'1: ミスプレースタイル数 / 2
+ * 最も弱い推定（過小評価が最も大きい）
+ */
+class HeuristicH1 implements Heuristic {
+	public float eval(State s) {
+		var w = (EightPuzzleWorld) s.world();
+		int misplaced = 0;
+		for (int i = 0; i < 9; i++) {
+			if (w.board[i] != 0 && w.board[i] != EightPuzzleWorld.GOAL[i]) {
+				misplaced++;
+			}
+		}
+		return misplaced / 2.0f;
+	}
+}
+
+/**
+ * ヒューリスティック関数 h'2: ミスプレースタイル数
+ * 中程度の推定
+ */
+class HeuristicH2 implements Heuristic {
 	public float eval(State s) {
 		var w = (EightPuzzleWorld) s.world();
 		int misplaced = 0;
@@ -342,5 +379,95 @@ class EightPuzzleHeuristic implements Heuristic {
 			}
 		}
 		return misplaced;
+	}
+}
+
+/**
+ * ヒューリスティック関数 h'3: マンハッタン距離
+ * 最も強い推定（より正確な推定）
+ */
+class HeuristicH3 implements Heuristic {
+	public float eval(State s) {
+		var w = (EightPuzzleWorld) s.world();
+		int totalDistance = 0;
+
+		for (int i = 0; i < 9; i++) {
+			int tile = w.board[i];
+			if (tile != 0) {
+				// 現在位置
+				int currentRow = i / 3;
+				int currentCol = i % 3;
+
+				// 目標位置
+				int goalPos = -1;
+				for (int j = 0; j < 9; j++) {
+					if (EightPuzzleWorld.GOAL[j] == tile) {
+						goalPos = j;
+						break;
+					}
+				}
+
+				int goalRow = goalPos / 3;
+				int goalCol = goalPos % 3;
+
+				// マンハッタン距離を加算
+				totalDistance += Math.abs(currentRow - goalRow) + Math.abs(currentCol - goalCol);
+			}
+		}
+
+		return totalDistance;
+	}
+}
+
+/**
+ * メトリクス収集機能付きのInformedSolver
+ */
+class MetricInformedSolver {
+	Evaluator eval;
+	public long visited = 0;
+	public long maxOpenLen = 0;
+	public long maxClosedLen = 0;
+
+	public MetricInformedSolver(Evaluator eval) {
+		this.eval = eval;
+	}
+
+	public State search(State root) {
+		var openList = new ArrayList<State>();
+		var closedSet = new HashSet<String>();
+		openList.add(root);
+
+		while (!openList.isEmpty()) {
+			var state = openList.remove(0);
+
+			String stateKey = state.world().toString();
+			if (closedSet.contains(stateKey))
+				continue;
+
+			this.visited += 1;
+			closedSet.add(stateKey);
+
+			if (state.isGoal())
+				return state;
+
+			var children = state.children();
+			for (var child : children) {
+				String childKey = child.world().toString();
+				if (!closedSet.contains(childKey)) {
+					openList.add(child);
+				}
+			}
+
+			sort(openList);
+
+			this.maxOpenLen = Math.max(this.maxOpenLen, openList.size());
+			this.maxClosedLen = Math.max(this.maxClosedLen, closedSet.size());
+		}
+
+		return null;
+	}
+
+	void sort(List<State> list) {
+		list.sort(Comparator.comparing(s -> this.eval.f(s)));
 	}
 }
