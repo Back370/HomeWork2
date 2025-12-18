@@ -1,5 +1,16 @@
 #include "task12-1.h"
 
+const char* scary_messages[8] = {
+    "Someone is watching you...",
+    "This task will never end",
+    "No time... No time...",
+    "Don't forget... Don't forget...",
+    "It's too late",
+    "Help me... Help me...",
+    "You cannot escape",
+    "I've been waiting"
+};
+
 void initialize_list(TodoList* list) {
     list->task_count = 0;
     for (int i = 0; i < MAX_TASKS; i++) {
@@ -136,6 +147,32 @@ void edit_task(TodoList* list) {
 
     printf("Task updated.\n");
 }
+
+void print_menu() {
+    printf("\n========================================\n");
+    printf("1. Register Task\n");
+    printf("2. Edit Task\n");
+    printf("3. Display Monthly Tasks\n");
+    printf("4. Display Today's Tasks\n");
+    printf("5. Exit\n");
+    printf("========================================\n");
+}
+
+void print_separator(int is_cursed) {
+    if (is_cursed) {
+        printf("\033[31m");
+        for (int i = 0; i < 60; i++) {
+            printf("=");
+        }
+        printf("\033[0m\n");
+    } else {
+        for (int i = 0; i < 60; i++) {
+            printf("-");
+        }
+        printf("\n");
+    }
+}
+
 void display_monthly_tasks(TodoList* list) {
     Date current_date;
     get_current_date(&current_date);
@@ -242,39 +279,119 @@ void save_to_file(TodoList* list) {
 
     fclose(file);
 }
-void load_from_file(TodoList* list);
-void get_current_date(Date* date);
-int compare_dates(Date* d1, Date* d2);
-void print_priority(Priority p);
-char* get_priority_string(Priority p);
-void corrupt_text(char* text);
-void show_scary_message();
-int is_same_month(Date* d1, Date* d2);
-int is_same_day(Date* d1, Date* d2);
-void print_menu() {
-    printf("\n========================================\n");
-    printf("1. Register Task\n");
-    printf("2. Edit Task\n");
-    printf("3. Display Monthly Tasks\n");
-    printf("4. Display Today's Tasks\n");
-    printf("5. Exit\n");
-    printf("========================================\n");
+
+void load_from_file(TodoList* list) {
+    FILE* file = fopen(DATA_FILE, "rb");
+    if (file == NULL) {
+        return;
+    }
+
+    fread(&list->task_count, sizeof(int), 1, file);
+    fread(list->tasks, sizeof(Task), MAX_TASKS, file);
+
+    fclose(file);
 }
-void print_separator(int is_cursed) {
-    if (is_cursed) {
-        printf("\033[31m");
-        for (int i = 0; i < 60; i++) {
-            printf("=");
-        }
-        printf("\033[0m\n");
-    } else {
-        for (int i = 0; i < 60; i++) {
-            printf("-");
-        }
-        printf("\n");
+
+void get_current_date(Date* date) {
+    time_t t = time(NULL);
+    struct tm* tm_info = localtime(&t);
+
+    date->year = tm_info->tm_year + 1900;
+    date->month = tm_info->tm_mon + 1;
+    date->day = tm_info->tm_mday;
+}
+
+int compare_dates(Date* d1, Date* d2) {
+    if (d1->year != d2->year) return d1->year - d2->year;
+    if (d1->month != d2->month) return d1->month - d2->month;
+    return d1->day - d2->day;
+}
+
+int is_same_month(Date* d1, Date* d2) {
+    return (d1->year == d2->year && d1->month == d2->month);
+}
+
+int is_same_day(Date* d1, Date* d2) {
+    return (d1->year == d2->year && d1->month == d2->month && d1->day == d2->day);
+}
+
+void print_priority(Priority p) {
+    switch (p) {
+        case LOW:
+            printf("Low");
+            break;
+        case MEDIUM:
+            printf("Medium");
+            break;
+        case HIGH:
+            printf("High");
+            break;
     }
 }
-void input_date(Date* date);
-int is_valid_date(Date* date);
-void clear_input_buffer();
+
+char* get_priority_string(Priority p) {
+    switch (p) {
+        case LOW:
+            return "Low";
+        case MEDIUM:
+            return "Medium";
+        case HIGH:
+            return "High";
+        default:
+            return "Unknown";
+    }
+}
+
+void corrupt_text(char* text) {
+    int len = strlen(text);
+    for (int i = 0; i < len; i++) {
+        if (rand() % 3 == 0) {
+            text[i] = '?' + (rand() % 30);
+        }
+    }
+}
+
+void show_scary_message() {
+    printf("\n\033[31m");
+    printf("******************************************\n");
+    printf("  %s\n", scary_messages[rand() % 8]);
+    printf("******************************************\n");
+    printf("\033[0m\n");
+}
+
+void input_date(Date* date) {
+    do {
+        printf("Enter year: ");
+        scanf("%d", &date->year);
+        printf("Enter month (1-12): ");
+        scanf("%d", &date->month);
+        printf("Enter day (1-31): ");
+        scanf("%d", &date->day);
+        clear_input_buffer();
+
+        if (!is_valid_date(date)) {
+            printf("\nInvalid date. Please try again.\n");
+        }
+    } while (!is_valid_date(date));
+}
+
+int is_valid_date(Date* date) {
+    if (date->year < 1900 || date->year > 2100) return 0;
+    if (date->month < 1 || date->month > 12) return 0;
+
+    int days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+
+    if ((date->year % 4 == 0 && date->year % 100 != 0) || (date->year % 400 == 0)) {
+        days_in_month[1] = 29;
+    }
+
+    if (date->day < 1 || date->day > days_in_month[date->month - 1]) return 0;
+
+    return 1;
+}
+
+void clear_input_buffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
 
