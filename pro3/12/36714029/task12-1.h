@@ -1,4 +1,7 @@
-#include "task12-1.c"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 #define MAX_TASKS 100
 #define MAX_CONTENT 256
@@ -34,16 +37,7 @@ typedef struct {
 } TodoList;
 
 //scary messages
-const char* scary_messages[] = {
-    "Someone is watching you...",
-    "This task will never end",
-    "No time... No time...",
-    "Don't forget... Don't forget...",
-    "It's too late",
-    "Help me... Help me...",
-    "You cannot escape",
-    "I've been waiting"
-};
+extern const char* scary_messages[];
 
 void initialize_list(TodoList* list);
 void add_task(TodoList* list);
