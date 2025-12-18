@@ -1,0 +1,10 @@
+a.out: main.o sub1.o sub2.o 
+
+gcc –o a.out main.o sub1.o sub2.o # a.out の生成コマンド
+# -lmなどのライブラリオプションはここに記入
+main.o: main.c 
+gcc –c main.c 
+sub1.o: sub1.c 
+gcc –c sub1.c 
+sub2.o: sub2.c 
+gcc –c sub2.c
