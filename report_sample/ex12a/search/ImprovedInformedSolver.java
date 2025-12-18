@@ -4,8 +4,8 @@ import java.util.*;
 
 public class ImprovedInformedSolver {
 	Evaluator eval;
-	long visited = 0;
-	long maxLen = 0;
+	public long visited = 0;
+	public long maxLen = 0;
 
 	public ImprovedInformedSolver(Evaluator eval) {
 		this.eval = eval;
@@ -23,7 +23,7 @@ public class ImprovedInformedSolver {
 		System.out.printf("visited: %d, max length: %d\n", this.visited, this.maxLen);
 	}
 
-	State search(State root) {
+	public State search(State root) {
 		var openList = new ArrayList<State>();
 		var closedSet = new HashSet<String>();
 		openList.add(root);

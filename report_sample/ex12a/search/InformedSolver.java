@@ -5,8 +5,8 @@ import java.util.stream.*;
 
 public class InformedSolver {
 	Evaluator eval;
-	long visited = 0;
-	long maxLen = 0;
+	public long visited = 0;
+	public long maxLen = 0;
 
 	public InformedSolver(Evaluator eval) {
 		this.eval = eval;
@@ -22,7 +22,7 @@ public class InformedSolver {
 		System.out.printf("visited: %d, max length: %d\n", this.visited, this.maxLen);
 	}
 
-	State search(State root) {
+	public State search(State root) {
 		var openList = toMutable(List.of(root));
 
 		while (openList.isEmpty() == false) {
@@ -43,19 +43,19 @@ public class InformedSolver {
 		return null;
 	}
 
-	State get(List<State> list) {
+	protected State get(List<State> list) {
 		return list.remove(0);
 	}
 
-	List<State> concat(List<State> xs, List<State> ys) {
+	protected List<State> concat(List<State> xs, List<State> ys) {
 		return toMutable(Stream.concat(xs.stream(), ys.stream()).toList());
 	}
 
-	void sort(List<State> list) {
+	protected void sort(List<State> list) {
 		list.sort(Comparator.comparing(s -> this.eval.f(s)));
 	}
 
-	List<State> toMutable(List<State> list) {
+	protected List<State> toMutable(List<State> list) {
 		return new ArrayList<State>(list);
 	}
 
