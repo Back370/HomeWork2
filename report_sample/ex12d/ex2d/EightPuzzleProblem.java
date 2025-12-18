@@ -34,7 +34,7 @@ class EightPuzzleProblem {
 		String[] heuristicNames = { "h'1 (Misplaced/2)", "h'2 (Misplaced)", "h'3 (Manhattan)" };
 
 		// 出力ファイルの準備
-		PrintWriter writer = new PrintWriter(new FileWriter("report_sample/ex12d/8-puzzle-ex12d.txt"));
+		PrintWriter writer = new PrintWriter(new FileWriter("8-puzzle-ex12d.txt"));
 
 		for (int i = 0; i < initialStates.length; i++) {
 			System.out.println("========================================");
@@ -62,7 +62,7 @@ class EightPuzzleProblem {
 		}
 
 		writer.close();
-		System.out.println("Results written to report_sample/ex12d/8-puzzle-ex12d.txt");
+		System.out.println("Results written to 8-puzzle-ex12d.txt");
 	}
 
 	private static void runAStarWithMetrics(Heuristic h, String hName, EightPuzzleWorld puzzle, PrintWriter writer) {
