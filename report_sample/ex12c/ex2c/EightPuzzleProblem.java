@@ -6,7 +6,7 @@ import report_sample.ex12a.search.*;
 
 class EightPuzzleProblem {
 	// 学生番号を設定してください
-	static final int STUDENT_ID = 12345678; // ここに実際の学生番号を入れてください
+	static final int STUDENT_ID = 36714029;
 
 	public static void main(String[] args) {
 		// 元の例
