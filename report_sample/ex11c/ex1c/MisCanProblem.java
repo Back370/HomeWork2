@@ -2,17 +2,7 @@ package report_sample.ex11c.ex1c;
 
 import java.util.*;
 
-/**
- * 宣教師と人食い人種の問題（Missionaries and Cannibals Problem）
- * 3人の宣教師と3人の人食い人種が川を渡る問題を解く
- * 制約：ボートには最大2人まで乗れる、どちらの岸でも人食い人種の数が宣教師の数を上回ってはならない
- */
 public class MisCanProblem {
-	/**
-	 * メインメソッド
-	 * 初期状態（左岸に宣教師3人、人食い人種3人、ボート1隻）から探索を開始
-	 * 横型探索（幅優先探索）と縦型探索（深さ優先探索）の両方を実行して性能を比較
-	 */
 	public static void main(String[] args) {
 		System.out.println("\n\n");
 		System.out.println("################################################################################");
@@ -50,10 +40,7 @@ public class MisCanProblem {
 	}
 }
 
-/**
- * 宣教師と人食い人種の移動アクションを表すクラス
- * 左岸から右岸、または右岸から左岸への移動を表現
- */
+
 class MisCanAction implements Action {
 	int missionary;  // 移動する宣教師の数（負の値は左岸から右岸、正の値は右岸から左岸）
 	int cannibal;    // 移動する人食い人種の数（負の値は左岸から右岸、正の値は右岸から左岸）
@@ -72,22 +59,13 @@ class MisCanAction implements Action {
 			new MisCanAction(+1, 0, +1),   // 宣教師1人が右から左へ
 			new MisCanAction(0, +1, +1));  // 人食い人種1人が右から左へ
 
-	/**
-	 * コンストラクタ
-	 * @param missionary 移動する宣教師の数
-	 * @param cannibal 移動する人食い人種の数
-	 * @param boat ボートの移動方向
-	 */
 	MisCanAction(int missionary, int cannibal, int boat) {
 		this.missionary = missionary;
 		this.cannibal = cannibal;
 		this.boat = boat;
 	}
 
-	/**
-	 * アクションの文字列表現を返す
-	 * @return 移動内容を説明した文字列
-	 */
+
 	public String toString() {
 		var dir = this.boat < 0 ? "RIGHT" : "LEFT ";
 		var m = Math.abs(this.missionary);
@@ -103,39 +81,22 @@ class MisCanAction implements Action {
 	}
 }
 
-/**
- * 宣教師と人食い人種問題の世界状態を表すクラス
- * 左岸の宣教師数、人食い人種数、ボートの位置を管理
- */
 class MisCanWorld implements World {
 	int missionary;  // 左岸にいる宣教師の数
 	int cannibal;    // 左岸にいる人食い人種の数  
 	int boat;        // ボートの位置（1：左岸、0：右岸）
 
-	/**
-	 * コンストラクタ
-	 * @param missionary 左岸の宣教師数
-	 * @param cannibal 左岸の人食い人種数
-	 * @param boat ボートの位置
-	 */
+	
 	public MisCanWorld(int missionary, int cannibal, int boat) {
 		this.missionary = missionary;
 		this.cannibal = cannibal;
 		this.boat = boat;
 	}
 
-	/**
-	 * 現在の状態をクローンする
-	 * @return 同じ状態の新しいMisCanWorldオブジェクト
-	 */
 	public MisCanWorld clone() {
 		return new MisCanWorld(this.missionary, this.cannibal, this.boat);
 	}
 
-	/**
-	 * 現在の状態が有効かどうかを判定
-	 * @return 制約条件を満たしている場合true
-	 */
 	public boolean isValid() {
 		// 宣教師の数が範囲内（0-3）かチェック
 		if (this.missionary < 0 || this.missionary > 3)
@@ -155,27 +116,14 @@ class MisCanWorld implements World {
 		return true;
 	}
 
-	/**
-	 * ゴール状態かどうかを判定
-	 * @return 全員が右岸に移動した場合（左岸に誰もいない）true
-	 */
 	public boolean isGoal() {
 		return this.missionary == 0 && this.cannibal == 0;
 	}
 
-	/**
-	 * 現在の状態から実行可能なアクションのリストを返す
-	 * @return すべての移動パターンのリスト
-	 */
 	public List<Action> actions() {
 		return MisCanAction.all;
 	}
 
-	/**
-	 * 指定されたアクションを実行した後の新しい状態を返す
-	 * @param action 実行するアクション
-	 * @return アクション実行後の新しい世界状態
-	 */
 	public World successor(Action action) {
 		var a = (MisCanAction) action;
 		var next = clone();
@@ -186,10 +134,6 @@ class MisCanWorld implements World {
 		return next;
 	}
 
-	/**
-	 * 状態の文字列表現を返す（視覚的に分かりやすい形式）
-	 * @return 川の両岸の状態を視覚的に表現した文字列
-	 */
 	public String toString() {
 		// 左岸の状態
 		String leftM = "M".repeat(this.missionary);

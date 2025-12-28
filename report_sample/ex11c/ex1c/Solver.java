@@ -163,10 +163,7 @@ public class Solver {
 	}
 }
 
-/**
- * 深さ優先探索（縦型探索）を行うSolverクラス
- * リストの末尾から要素を取り出すことで深さ優先探索を実現
- */
+
 class DepthFirstSolver extends Solver {
 	@Override
 	State get(List<State> list) {

@@ -100,11 +100,6 @@ class EightPuzzleProblem {
 		}
 	}
 
-	/**
-	 * ゴール状態からn回ランダムに操作して初期状態を生成
-	 * @param n 操作回数
-	 * @return 生成された初期状態
-	 */
 	private static int[] generateRandomState(int n) {
 		Random rn = new Random(STUDENT_ID + n);
 		int[] board = { 1, 2, 3, 4, 5, 6, 7, 8, 0 }; // ゴール状態
@@ -117,13 +112,6 @@ class EightPuzzleProblem {
 		return board;
 	}
 
-	/**
-	 * 操作を適用
-	 * 0: 空白マスの上のタイルを下に移動
-	 * 1: 空白マスの右のタイルを左に移動
-	 * 2: 空白マスの下のタイルを上に移動
-	 * 3: 空白マスの左のタイルを右に移動
-	 */
 	private static int[] applyOperation(int[] board, int operation) {
 		int[] newBoard = Arrays.copyOf(board, board.length);
 
@@ -170,9 +158,7 @@ class EightPuzzleProblem {
 	}
 }
 
-/**
- * 訪問ノード数制限付きのInformedSolver
- */
+
 class LimitedInformedSolver extends InformedSolver {
 	long maxVisits;
 	boolean limitReached = false;

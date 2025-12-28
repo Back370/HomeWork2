@@ -2,17 +2,8 @@ package report_sample.ex11d.ex1d;
 
 import java.util.*;
 
-/**
- * 宣教師と人食い人種の問題（Missionaries and Cannibals Problem）
- * k人の宣教師とk人の人食い人種が川を渡る問題を解く
- * 制約：ボート容量は k/2+1、どちらの岸でもボート上でも人食い人種の数が宣教師の数を上回ってはならない
- * コマンドライン引数でkの値を指定可能（デフォルト：3～10の範囲で測定）
- */
 public class MisCanProblem {
-	/**
-	 * メインメソッド
-	 * k = 3～10の範囲で幅優先探索を実行し、統計を測定する
-	 */
+
 	public static void main(String[] args) {
 		// コマンドライン引数で単一のkを指定するか、範囲測定を行う
 		if (args.length > 0) {
@@ -33,9 +24,7 @@ public class MisCanProblem {
 		}
 	}
 
-	/**
-	 * 単一のkに対してBFSとDFSの両方を実行
-	 */
+
 	static void runSingleTest(int k) {
 		int boatCapacity = k / 2 + 1;
 
@@ -65,9 +54,7 @@ public class MisCanProblem {
 		dfsSolver.solve(new MisCanWorld(k, k, 1, k, boatCapacity), "Depth-First Search (DFS)");
 	}
 
-	/**
-	 * k = 3～10の範囲でBFSを実行し、統計情報を測定・表示
-	 */
+
 	static void runBenchmark() {
 		System.out.println("\n\n");
 		System.out.println("################################################################################");
@@ -106,9 +93,7 @@ public class MisCanProblem {
 		runClosedListComparison();
 	}
 
-	/**
-	 * クローズドリストありとなしで性能を比較
-	 */
+
 	static void runClosedListComparison() {
 		System.out.println("\n\n");
 		System.out.println("################################################################################");
@@ -167,9 +152,7 @@ public class MisCanProblem {
 		printClosedListAnalysis();
 	}
 
-	/**
-	 * クローズドリストの効果についての考察を出力
-	 */
+
 	static void printClosedListAnalysis() {
 		System.out.println("=".repeat(80));
 		System.out.println("                    Analysis: Effect of Closed List");
@@ -207,33 +190,19 @@ public class MisCanProblem {
 	}
 }
 
-/**
- * 宣教師と人食い人種の移動アクションを表すクラス
- * 左岸から右岸、または右岸から左岸への移動を表現
- */
+
 class MisCanAction implements Action {
 	int missionary;  // 移動する宣教師の数（負の値は左岸から右岸、正の値は右岸から左岸）
 	int cannibal;    // 移動する人食い人種の数（負の値は左岸から右岸、正の値は右岸から左岸）
 	int boat;        // ボートの移動（-1：左岸から右岸、+1：右岸から左岸）
 
-	/**
-	 * コンストラクタ
-	 * @param missionary 移動する宣教師の数
-	 * @param cannibal 移動する人食い人種の数
-	 * @param boat ボートの移動方向
-	 */
+
 	MisCanAction(int missionary, int cannibal, int boat) {
 		this.missionary = missionary;
 		this.cannibal = cannibal;
 		this.boat = boat;
 	}
 
-	/**
-	 * ボート容量に基づいて可能なすべてのアクションを生成
-	 * ボート上でも M >= C の制約を満たす必要がある
-	 * @param boatCapacity ボートの最大容量
-	 * @return 可能なすべてのアクションのリスト
-	 */
 	static List<Action> generateActions(int boatCapacity) {
 		List<Action> actions = new ArrayList<>();
 
@@ -260,10 +229,7 @@ class MisCanAction implements Action {
 		return actions;
 	}
 
-	/**
-	 * アクションの文字列表現を返す
-	 * @return 移動内容を説明した文字列
-	 */
+
 	public String toString() {
 		var dir = this.boat < 0 ? "RIGHT" : "LEFT ";
 		var m = Math.abs(this.missionary);
@@ -279,10 +245,7 @@ class MisCanAction implements Action {
 	}
 }
 
-/**
- * 宣教師と人食い人種問題の世界状態を表すクラス
- * 左岸の宣教師数、人食い人種数、ボートの位置を管理
- */
+
 class MisCanWorld implements World {
 	int missionary;    // 左岸にいる宣教師の数
 	int cannibal;      // 左岸にいる人食い人種の数
@@ -291,25 +254,11 @@ class MisCanWorld implements World {
 	int boatCapacity;  // ボートの最大容量
 	List<Action> allActions;  // 可能なアクションのキャッシュ
 
-	/**
-	 * コンストラクタ
-	 * @param missionary 左岸の宣教師数
-	 * @param cannibal 左岸の人食い人種数
-	 * @param boat ボートの位置
-	 * @param k 各グループの総人数
-	 */
 	public MisCanWorld(int missionary, int cannibal, int boat, int k) {
 		this(missionary, cannibal, boat, k, 2);  // デフォルトのボート容量は2
 	}
 
-	/**
-	 * コンストラクタ（ボート容量指定）
-	 * @param missionary 左岸の宣教師数
-	 * @param cannibal 左岸の人食い人種数
-	 * @param boat ボートの位置
-	 * @param k 各グループの総人数
-	 * @param boatCapacity ボートの最大容量
-	 */
+
 	public MisCanWorld(int missionary, int cannibal, int boat, int k, int boatCapacity) {
 		this.missionary = missionary;
 		this.cannibal = cannibal;
@@ -319,20 +268,14 @@ class MisCanWorld implements World {
 		this.allActions = MisCanAction.generateActions(boatCapacity);
 	}
 
-	/**
-	 * 現在の状態をクローンする
-	 * @return 同じ状態の新しいMisCanWorldオブジェクト
-	 */
+	
 	public MisCanWorld clone() {
 		var cloned = new MisCanWorld(this.missionary, this.cannibal, this.boat, this.k, this.boatCapacity);
 		cloned.allActions = this.allActions;  // アクションリストを共有
 		return cloned;
 	}
 
-	/**
-	 * 現在の状態が有効かどうかを判定
-	 * @return 制約条件を満たしている場合true
-	 */
+	
 	public boolean isValid() {
 		// 宣教師の数が範囲内（0-k）かチェック
 		if (this.missionary < 0 || this.missionary > this.k)
@@ -354,27 +297,16 @@ class MisCanWorld implements World {
 		return true;
 	}
 
-	/**
-	 * ゴール状態かどうかを判定
-	 * @return 全員が右岸に移動した場合（左岸に誰もいない）true
-	 */
+
 	public boolean isGoal() {
 		return this.missionary == 0 && this.cannibal == 0;
 	}
 
-	/**
-	 * 現在の状態から実行可能なアクションのリストを返す
-	 * @return すべての移動パターンのリスト
-	 */
+
 	public List<Action> actions() {
 		return this.allActions;
 	}
 
-	/**
-	 * 指定されたアクションを実行した後の新しい状態を返す
-	 * @param action 実行するアクション
-	 * @return アクション実行後の新しい世界状態
-	 */
 	public World successor(Action action) {
 		var a = (MisCanAction) action;
 		var next = clone();
@@ -385,10 +317,7 @@ class MisCanWorld implements World {
 		return next;
 	}
 
-	/**
-	 * 状態の文字列表現を返す（視覚的に分かりやすい形式）
-	 * @return 川の両岸の状態を視覚的に表現した文字列
-	 */
+
 	public String toString() {
 		// 左岸の状態
 		String leftM = "M".repeat(this.missionary);

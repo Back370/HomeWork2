@@ -116,11 +116,6 @@ class EightPuzzleProblem {
 		}
 	}
 
-	/**
-	 * ゴール状態からn回ランダムに操作して初期状態を生成
-	 * @param n 操作回数
-	 * @return 生成された初期状態
-	 */
 	private static int[] generateRandomState(int n) {
 		Random rn = new Random(STUDENT_ID + n);
 		int[] board = { 1, 2, 3, 4, 5, 6, 7, 8, 0 }; // ゴール状態
@@ -133,13 +128,6 @@ class EightPuzzleProblem {
 		return board;
 	}
 
-	/**
-	 * 操作を適用
-	 * 0: 空白マスの上のタイルを下に移動
-	 * 1: 空白マスの右のタイルを左に移動
-	 * 2: 空白マスの下のタイルを上に移動
-	 * 3: 空白マスの左のタイルを右に移動
-	 */
 	private static int[] applyOperation(int[] board, int operation) {
 		int[] newBoard = Arrays.copyOf(board, board.length);
 
@@ -186,9 +174,6 @@ class EightPuzzleProblem {
 	}
 }
 
-/**
- * 訪問ノード数制限付きのInformedSolver
- */
 class LimitedInformedSolver extends InformedSolver {
 	long maxVisits;
 	boolean limitReached = false;
@@ -348,10 +333,6 @@ class EightPuzzleWorld implements World {
 	}
 }
 
-/**
- * ヒューリスティック関数 h'1: ミスプレースタイル数 / 2
- * 最も弱い推定（過小評価が最も大きい）
- */
 class HeuristicH1 implements Heuristic {
 	public float eval(State s) {
 		var w = (EightPuzzleWorld) s.world();
@@ -365,10 +346,6 @@ class HeuristicH1 implements Heuristic {
 	}
 }
 
-/**
- * ヒューリスティック関数 h'2: ミスプレースタイル数
- * 中程度の推定
- */
 class HeuristicH2 implements Heuristic {
 	public float eval(State s) {
 		var w = (EightPuzzleWorld) s.world();
@@ -382,10 +359,6 @@ class HeuristicH2 implements Heuristic {
 	}
 }
 
-/**
- * ヒューリスティック関数 h'3: マンハッタン距離
- * 最も強い推定（より正確な推定）
- */
 class HeuristicH3 implements Heuristic {
 	public float eval(State s) {
 		var w = (EightPuzzleWorld) s.world();
@@ -419,9 +392,7 @@ class HeuristicH3 implements Heuristic {
 	}
 }
 
-/**
- * メトリクス収集機能付きのInformedSolver
- */
+
 class MetricInformedSolver {
 	Evaluator eval;
 	public long visited = 0;
