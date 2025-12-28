@@ -1,7 +1,7 @@
-
+package ex12a.ex2a;
 
 import java.util.*;
-
+import ex12a.search.*;
 
 class MisCanAction implements Action {
 	int missionary;

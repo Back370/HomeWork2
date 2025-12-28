@@ -1,3 +1,6 @@
+package ex12a.ex2a;
+
+import ex12a.search.*;
 
 public class Main {
 	public static void main(String[] args) {

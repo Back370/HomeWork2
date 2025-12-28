@@ -1,7 +1,8 @@
-
+package ex12d.ex2d;
 
 import java.util.*;
 import java.io.*;
+import ex12a.search.*;
 
 
 class EightPuzzleProblem {

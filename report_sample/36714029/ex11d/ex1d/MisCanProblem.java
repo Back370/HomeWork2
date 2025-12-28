@@ -1,3 +1,4 @@
+package ex11d.ex1d;
 import java.util.*;
 
 public class MisCanProblem {

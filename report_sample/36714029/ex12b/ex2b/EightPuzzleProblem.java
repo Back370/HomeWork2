@@ -1,8 +1,7 @@
-
+package ex12b.ex2b;
 
 import java.util.*;
-
-
+import ex12a.search.*;
 
 class EightPuzzleProblem {
 	public static void main(String[] args) {

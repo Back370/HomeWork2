@@ -1,4 +1,4 @@
-
+package ex12a.search;
 
 public interface Evaluator {
 	public static Evaluator minCost() { return new MinCostEvaluator(); }

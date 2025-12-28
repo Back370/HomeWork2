@@ -1,7 +1,7 @@
-
+package ex12c.ex2c;
 
 import java.util.*;
-
+import ex12a.search.*;
 
 class EightPuzzleProblem {
 	// 学生番号を設定してください

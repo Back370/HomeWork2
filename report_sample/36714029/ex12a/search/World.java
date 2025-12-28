@@ -1,4 +1,4 @@
-package report_sample.ex12a.search;
+package ex12a.search;
 
 import java.util.*;
 
