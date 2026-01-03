@@ -205,12 +205,16 @@ public class Maze {
 
 \subsection{実行結果} 
 
-\begin{figure}[!hbt]
+\vspace{1em}
+
+\begin{figure}[htbp]
   \centering
-  \includegraphics[bb=0 0 782 352,width=0.6\linewidth]{1-1result.png}
+  \includegraphics[bb=0 0 782 352,width=0.4\linewidth]{1-1result.png}
   \caption{実行結果}
   \label{fig:result}
 \end{figure}
+
+\vspace{1em}
 
 \paragraph{自己評価／作業時間: } A／1時間23分
 
@@ -362,12 +366,16 @@ class MazeWorld implements World {
 
 \subsection{実行結果} 
 
-\begin{figure}[!hbt]
+\vspace{1em}
+
+\begin{figure}[htbp]
   \centering
-  \includegraphics[bb=0 0 782 352,width=0.6\linewidth]{2-1result.png}
+  \includegraphics[bb=0 0 782 352,width=0.4\linewidth]{2-1result.png}
   \caption{実行結果}
   \label{fig:result}
 \end{figure}
+
+\vspace{1em}
 
 \paragraph{自己評価／作業時間: } S／6時間
 
@@ -472,12 +480,16 @@ public World successor(Action action) {
 実行結果から、11手で解が得られたため、これは最小手数であると考えられる。
 宣教師と人食い人種の問題は、制約条件が厳しいため、多くの状態が無効となるが、幅優先探索により、すべての可能な状態を均等に探索することで、最短経路を見つけることができる。
 
-\begin{figure}[!hbt]
+\vspace{1em}
+
+\begin{figure}[htbp]
   \centering
-  \includegraphics[bb=0 0 782 352,width=0.6\linewidth]{3-1result.png}
+  \includegraphics[bb=0 0 782 352,width=0.4\linewidth]{3-1result.png}
   \caption{実行結果}
   \label{fig:result}
 \end{figure}
+
+\vspace{1em}
 
 \section{課題3-2}
 
@@ -485,12 +497,16 @@ public World successor(Action action) {
 人間にとって視認しやすい実行例となるようプログラムを改良せよ．改良された実行結果をレポートに示せ
 \end{screen}
 
-\begin{figure}[!hbt]
+\vspace{1em}
+
+\begin{figure}[htbp]
   \centering
-  \includegraphics[bb=0 0 782 352,width=0.6\linewidth]{3-2result.png}
+  \includegraphics[bb=0 0 782 352,width=0.4\linewidth]{3-2result.png}
   \caption{実行結果}
   \label{fig:result}
 \end{figure}
+
+\vspace{1em}
 
 \section{課題3-3}
 
@@ -535,12 +551,16 @@ Execution Time        : 59 ms
  まずはプログラムを使わずに k と処理時間の関係を予想しそのグラフの概形を示しなさい．
 \end{screen}
 
-\begin{figure}[!hbt]
+\vspace{1em}
+
+\begin{figure}[htbp]
   \centering
-  \includegraphics[bb=0 0 782 352,width=0.6\linewidth]{4-1result.png}
+  \includegraphics[bb=0 0 782 352,width=0.4\linewidth]{4-1result.png}
   \caption{実行結果}
   \label{fig:result}
 \end{figure}
+
+\vspace{1em}
 
 \section{課題4-2}
 
@@ -943,30 +963,25 @@ h'_3(n) = \sum_{i=1}^{8} (|\text{row}_{\text{current}}(i) - \text{row}_{\text{go
 \hline
 \textbf{初期状態} & \textbf{関数} & \textbf{手数} & \textbf{訪問数} & \textbf{Open最大} & \textbf{Closed最大} & \textbf{時間(ms)} \\
 \hline
-\multirow{3}{*}{Example}
-& $h'_1$ & 14 & 902 & 572 & 901 & 88 \\
-& $h'_2$ & 14 & 236 & 160 & 235 & 18 \\
-& $h'_3$ & 14 & 85 & 60 & 84 & 6 \\
+Example & $h'_1$ & 14 & 902 & 572 & 901 & 88 \\
+Example & $h'_2$ & 14 & 236 & 160 & 235 & 18 \\
+Example & $h'_3$ & 14 & 85 & 60 & 84 & 6 \\
 \hline
-\multirow{3}{*}{Random n=100}
-& $h'_1$ & 21 & 21,920 & 11,399 & 21,919 & 13,170 \\
-& $h'_2$ & 21 & 5,279 & 3,231 & 5,278 & 556 \\
-& $h'_3$ & 21 & 409 & 250 & 408 & 11 \\
+Random n=100 & $h'_1$ & 21 & 21,920 & 11,399 & 21,919 & 13,170 \\
+Random n=100 & $h'_2$ & 21 & 5,279 & 3,231 & 5,278 & 556 \\
+Random n=100 & $h'_3$ & 21 & 409 & 250 & 408 & 11 \\
 \hline
-\multirow{3}{*}{Random n=200}
-& $h'_1$ & 17 & 4,041 & 2,470 & 4,040 & 358 \\
-& $h'_2$ & 17 & 1,035 & 668 & 1,034 & 20 \\
-& $h'_3$ & 17 & 264 & 173 & 263 & 0 \\
+Random n=200 & $h'_1$ & 17 & 4,041 & 2,470 & 4,040 & 358 \\
+Random n=200 & $h'_2$ & 17 & 1,035 & 668 & 1,034 & 20 \\
+Random n=200 & $h'_3$ & 17 & 264 & 173 & 263 & 0 \\
 \hline
-\multirow{3}{*}{Random n=300}
-& $h'_1$ & 20 & 16,323 & 8,803 & 16,322 & 7,635 \\
-& $h'_2$ & 20 & 3,964 & 2,475 & 3,963 & 281 \\
-& $h'_3$ & 20 & 494 & 287 & 493 & 18 \\
+Random n=300 & $h'_1$ & 20 & 16,323 & 8,803 & 16,322 & 7,635 \\
+Random n=300 & $h'_2$ & 20 & 3,964 & 2,475 & 3,963 & 281 \\
+Random n=300 & $h'_3$ & 20 & 494 & 287 & 493 & 18 \\
 \hline
-\multirow{3}{*}{Difficult}
-& $h'_1$ & 28 & 153,442 & 32,147 & 153,441 & 909,515 \\
-& $h'_2$ & 28 & 80,807 & 29,721 & 80,806 & 197,077 \\
-& $h'_3$ & 28 & 4,515 & 2,472 & 4,514 & 2,069 \\
+Difficult & $h'_1$ & 28 & 153,442 & 32,147 & 153,441 & 909,515 \\
+Difficult & $h'_2$ & 28 & 80,807 & 29,721 & 80,806 & 197,077 \\
+Difficult & $h'_3$ & 28 & 4,515 & 2,472 & 4,514 & 2,069 \\
 \hline
 \end{tabular}
 \end{table}
