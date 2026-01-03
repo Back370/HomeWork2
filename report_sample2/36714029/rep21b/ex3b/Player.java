@@ -1,4 +1,4 @@
-package report_sample2.rep21b.ex3b;
+package ex3b;
 
 public abstract class Player {
 String name;

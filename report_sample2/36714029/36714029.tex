@@ -1,0 +1,869 @@
+\documentclass[10pt,a4j]{ujarticle}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{listings,jlisting}
+\usepackage{ascmac}
+\usepackage{amsmath,amssymb}
+
+%ここからソースコードの表示に関する設定
+\lstset{
+  basicstyle={\ttfamily},
+  identifierstyle={\small},
+  commentstyle={\smallitshape},
+  keywordstyle={\small\bfseries},
+  ndkeywordstyle={\small},
+  stringstyle={\small\ttfamily},
+  frame={tb},
+  breaklines=true,
+  columns=[l]{fullflexible},
+  numbers=left,
+  xrightmargin=0zw,
+  xleftmargin=3zw,
+  numberstyle={\scriptsize},
+  stepnumber=1,
+  numbersep=1zw,
+  lineskip=-0.5ex
+}
+%ここまでソースコードの表示に関する設定
+
+\title{知能処理学 レポート}
+\author{
+ 36714029 遠藤裕人\\
+  {\small (学生番号と氏名が必要)}
+}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+%\paragraph{提出レポート: } rep0
+\paragraph{全体的な自己評価／作業時間: } S／6時間
+
+自己評価を S, A, B, C, D から選択する．作業時間は成績に影響しないので正直に書くこと．
+
+\paragraph{評価の理由: } 迷路探索アルゴリズムの実装において各処理（ゴール検査選択展開生成）を独立したメソッドに分離することで可読性と保守性を向上させた．また幅優先探索と深さ優先探索の違いを引数の順序変更のみで実現できることを示しアルゴリズムの本質的な理解を深めることができたため．
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{課題2-1e 全体的な考察}
+
+\section{課題2-1a}
+
+\paragraph{自己評価／作業時間: } S 2時間23分
+
+\section{課題1-1}
+
+\begin{screen}
+  講義で示した min-max 法や α-β カット法の擬似コードと見比べながらレポートにてその実現方法を説明する
+\end{screen}
+
+\subsection{min-max 法} 
+\begin{lstlisting}
+float maxSearch(State state, int depth) {
+    if (isTerminal(state, depth))
+        return this.eval.value(state);
+    var v = NEGATIVE_INFINITY;
+    for (var move: state.getMoves()) {
+        var next = state.perform(move);
+        var v0 = minSearch(next, depth + 1);
+        v = Math.max(v, v0);
+    }
+    return v;
+}
+\end{lstlisting}
+一つ下のノードに対してminSearchを呼び出している。できるだけ低い評価値の中から最大値を選んでいる。
+\begin{lstlisting}
+float minSearch(State state, int depth) {
+    if (isTerminal(state, depth))
+        return this.eval.value(state);
+    var v = POSITIVE_INFINITY;
+    for (var move: state.getMoves()) {
+            var next = state.perform(move);
+            var v0 = maxSearch(next, depth + 1);
+            v = Math.min(v, v0);
+    }
+    return v;
+}
+\end{lstlisting}
+一つ下のノードに対してmaxSearchを呼び出している。相手が最良の手を選ぶ前提である。
+
+
+\subsection{α-β カット法} 
+\begin{lstlisting}
+float maxSearch(State state, float alpha, float beta, int depth) {
+  //葉ノード（探索の末端）の評価値
+    if (isTerminal(state, depth)) {
+        float val = this.eval.value(state);
+        System.out.println("  ".repeat(depth) + "Leaf " + state + " = " + val);
+        return val;
+    }
+    float v = NEGATIVE_INFINITY;
+    System.out.println("  ".repeat(depth) + "MAX at " + state + " [alpha=" + alpha + ", beta=" + beta + "]");
+    for (var move: state.getMoves()) {
+        var next = state.perform(move);
+        float v0 = minSearch(next, alpha, beta, depth + 1);
+        v = Math.max(v, v0);
+        if (beta <= v0) {
+            System.out.println("  ".repeat(depth) + "PRUNED (beta cutoff) at " + state);
+            break;
+        }
+        alpha = Math.max(alpha, v0);
+    }
+    return v;
+}
+\end{lstlisting}
+親ノードより子ノードの評価値が良ければ探索を打ち切る。これがβカットである。実質的に親ノードと一つ下の子ノードの評価値だけを観察しており、それ以下のノードの評価値はminSearch内にある。
+\begin{lstlisting}
+float minSearch(State state, float alpha, float beta, int depth) {
+    if (isTerminal(state, depth)) {
+        float val = this.eval.value(state);
+        System.out.println("  ".repeat(depth) + "Leaf " + state + " = " + val);
+        return val;
+    }
+    float v = POSITIVE_INFINITY;
+    System.out.println("  ".repeat(depth) + "MIN at " + state + " [alpha=" + alpha + ", beta=" + beta + "]");
+    for (var move: state.getMoves()) {
+        var next = state.perform(move);
+        float v0 = maxSearch(next, alpha, beta, depth + 1);
+        v = Math.min(v, v0);
+        if (alpha >= v0) {
+            System.out.println("  ".repeat(depth) + "PRUNED (alpha cutoff) at " + state + " after evaluating " + next);
+            break;
+        }
+        beta = Math.min(beta, v0);
+    }
+    return v;
+}
+\end{lstlisting}
+親ノードより子ノードの評価値が悪ければ探索を打ち切る。これがαカットである。
+
+\begin{screen}
+  リスト3を利用して図2の評価値を求めよ
+\end{screen}
+
+MAX at Root [alpha=-Infinity, beta=Infinity]
+  MIN at L1 [alpha=-Infinity, beta=Infinity]
+    Leaf LL1 = -1.0
+    Leaf LL2 = -31.0
+    Leaf LL3 = -16.0
+  MIN at L2 [alpha=-31.0, beta=Infinity]
+    Leaf ML1 = -38.0
+  PRUNED (alpha cutoff) at L2 after evaluating ML1
+  MIN at L3 [alpha=-31.0, beta=Infinity]
+    Leaf RL1 = -9.0
+    Leaf RL2 = 6.0
+AlphaBeta evaluation: -9.0
+
+よって評価値は-9.0となる。
+
+またML1の評価値-38.0はL2ノードの評価値-31.0より小さいためαカットが発生しRL1 RL2の評価値は計算されていない。
+
+
+\subsection{考察・感想}
+
+\paragraph{考察: }
+今回実装した迷路探索プログラムでは幅優先探索アルゴリズムを採用した．最初は深さ優先探索の方が実装が簡単だと予想していたが実際にプログラムを作成すると幅優先探索の方がより直感的で理解しやすい実装となった．特にopenListに子ノードを後ろに追加する処理（concat(openList, children)）により同じ深さのノードを先に探索する動作が自然に実現できた．
+
+プログラムの構造について分析すると各処理が独立したメソッドとして分離されており保守性が高い設計になっている．ゴール検査選択展開生成の各処理が明確に分離されているためアルゴリズムの変更や拡張が容易である．
+
+また深さ優先探索への変更もconcat の引数順序を変更するだけで実現できることが分かった．具体的にはconcat(children, openList) とすることで新しく生成されたノードが優先的に選択され深さ優先探索となる．この柔軟性はオブジェクト指向設計の利点を活かした結果と考えられる．
+
+性能面ではこの実装は小規模な迷路に対しては十分な性能を示すが大規模な迷路では訪問済みノードの管理が必要になると考えられる．現在の実装では同じノードを複数回訪問する可能性があり無限ループのリスクも存在する．改善策としてSet<String>を用いた訪問済みノード管理の導入が有効であろう．
+
+\paragraph{感想: }
+探索アルゴリズムの実装を通じて理論で学んだ内容を実際のコードで表現することの面白さと難しさを実感した．特にアルゴリズムの動作を具体的なデータ構造（ListMap）で表現する過程で抽象的な概念を具体化する重要性を学んだ．またわずかなコードの変更（引数の順序）でアルゴリズムの性質が大きく変わることに驚きを感じた．今後はより複雑な探索問題や最適化問題にも挑戦しアルゴリズムの理解を深めていきたい．
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{課題2-1b}
+
+\paragraph{自己評価／作業時間: } S 2時間00分
+
+\section{課題2-1}
+
+\begin{screen}
+  講義で示したアルゴリズムと比較すること．各クラスの役割をレポートにて説明すること
+\end{screen}
+
+
+Evalクラス
+状態の評価値を計算する役割を持つ。valueメソッドはStateオブジェクトを受け取り、その状態がゴール状態であれば無限大の評価値を返し、そうでなければ石の数に基づいて評価値を計算する。
+
+
+Playerクラス
+状態の評価値を計算する役割を持つ。valueメソッドはStateオブジェクトを受け取り、その状態がゴール状態であれば無限大の評価値を返し、そうでなければ石の数に基づいて評価値を計算する。
+
+RandomPlayerクラス
+Playerクラスを継承し、ランダムに石を取り除く戦略を実装する。nextMoveメソッドはStateオブジェクトを受け取り、可能な手の中からランダムに一つを選択して返す。
+
+Stateクラス
+ゲームの状態を表現する役割を持つ。現在の石の数、現在のプレイヤー、各プレイヤーが獲得した石の数などの情報を保持する。getMovesメソッドは現在の状態から可能な手をリストとして返し、performメソッドは指定された手を実行した後の新しい状態を返す。
+
+\begin{screen}
+  石の個数を変えたり，先行後攻を入れ替えたりして RandomPlayer と MinMaxPlayer を対戦させた結果を報告せよ
+\end{screen}
+石の数が5のとき、MinMaxPlayerが3つの石を獲得したため勝利した。
+==== 5 stone(s) ====
+ 5 ->  4 | Random(o) took 1 stone(s).
+ 4 ->  1 | MinMax20(x) took 3 stone(s).
+ 1 ->  0 | Random(o) took 1 stone(s).
+Winner: MinMax20(x)
+
+石の数が20のとき、MinMaxPlayerが11つの石を獲得したため勝利した。
+==== 20 stone(s) ====
+20 -> 18 | Random(o) took 2 stone(s).
+18 -> 17 | MinMax20(x) took 1 stone(s).
+17 -> 14 | Random(o) took 3 stone(s).
+14 -> 13 | MinMax20(x) took 1 stone(s).
+13 -> 12 | Random(o) took 1 stone(s).
+12 ->  9 | MinMax20(x) took 3 stone(s).
+ 9 ->  8 | Random(o) took 1 stone(s).
+ 8 ->  5 | MinMax20(x) took 3 stone(s).
+ 5 ->  4 | Random(o) took 1 stone(s).
+ 4 ->  1 | MinMax20(x) took 3 stone(s).
+ 1 ->  0 | Random(o) took 1 stone(s).
+Winner: MinMax20(x)
+\subsection{
+
+
+MazeProblem での実装：} 
+\begin{lstlisting}
+		public boolean isValid() {
+		return true;
+	}
+\end{lstlisting}
+- 迷路問題では常に `true` を返しており、すべての状態が有効 であることを示す
+- 一般的には、制約条件を満たさない状態を除外する場合に使用
+
+\subsection{### 2. `boolean isGoal()`
+
+役割： 現在の状態がゴール状態であるかを判定する
+
+MazeProblem での実装：} 
+\begin{lstlisting}
+	public boolean isGoal() {
+		return "E".equals(this.current);
+	}
+\end{lstlisting}
+
+説明：
+
+- 現在地が `"E"` と一致するかをチェック
+- ゴール到達時に探索を終了
+- 迷路問題では、スタート地点 `"A"` からゴール地点 `"E"` への経路を探索
+
+\subsection{### 3. List<Action> actions()
+
+役割： 現在の状態から実行可能なすべてのアクション（移動先）を返す
+
+MazeProblem での実装：}
+\begin{lstlisting}
+public List<Action> actions() {
+    return this.map.getOrDefault(current, Collections.emptyList()).stream()
+            .map(p -> (Action) new MazeAction(p))
+            .toList();
+}
+\end{lstlisting}
+説明：
+
+- map から現在位置に対応するノードリストを取得
+- 各移動先を MazeAction オブジェクトに変換
+- 例：位置 `"A"` の場合、`["B", "C", "D"]` に対応する3つのアクションを返す
+- 移動先がない場合は空のリストを返す
+
+\subsection{### 4. World successor(Action action)
+
+役割： 指定されたアクションを実行した後の新しい状態（後続状態）を返す
+
+MazeProblem での実装：}
+\begin{lstlisting}
+public World successor(Action action) {
+    var a = (MazeAction) action;
+    return new MazeWorld(a.next);
+}
+\end{lstlisting}
+説明：
+
+- アクション（移動先）を受け取り、新しい World オブジェクトを生成
+- 新しいオブジェクトの current を移動先に更新
+
+
+\subsection{考察・感想}
+
+\paragraph{考察: }
+課題2では探索アルゴリズムをより汎用的で拡張性の高い設計に改良することができた．特にWorldインターフェースとActionインターフェースの導入により探索問題の抽象化が実現された．これにより迷路探索以外の問題にも同じSolverクラスを適用可能となりコードの再利用性が大幅に向上した．
+
+インターフェース設計の観点から分析すると各メソッドの責任が明確に分離されている．isValid()による制約チェックisGoal()によるゴール判定actions()による可能な行動の生成successor()による状態遷移といった探索アルゴリズムに必要な基本操作が適切に抽象化されている．この設計により問題固有の詳細実装とアルゴリズムのロジックが分離され保守性と理解しやすさが向上した．
+
+また課題1-1aの単純な実装と比較するとStateクラスの導入により探索経路の追跡が可能になった点も重要である．parent参照を持つことでゴール到達時に完全な解の経路を再構築できるようになりより実用的な解決策となった．
+
+\paragraph{感想: }
+課題2の実装を通じてオブジェクト指向設計の威力を実感することができた．最初は課題1-1aの単純な実装で十分だと思っていたがインターフェースを導入することで同じ探索エンジンで全く異なる問題を解けるようになることに感動した．特にMazeActionやMazeWorldクラスで問題固有の詳細を隠蔽しSolverクラスで汎用的な探索ロジックを提供するという設計パターンは今後の開発で活用したい重要な学びとなった．
+
+プログラムを実際に動かしてみると解の経路が「A → B (move to B) → E (move to E)」のように表示されどのような手順でゴールに到達したかが明確に分かる点も印象的だった．これは実用的なアプリケーションでは必須の機能であり理論だけでなく実装面での完成度の重要性を学んだ．今後はさらに複雑な探索問題やA*アルゴリズムなどの高度な手法にも挑戦してみたい．
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{課題1-1c}
+
+\paragraph{自己評価／作業時間: } S／7時間
+
+\section{課題3-1}
+
+\begin{screen}
+ プログラムを実行し手数（船の移動回数）を確認しその手数が最小であるかを考察すること．
+\end{screen}
+
+考察：
+幅優先探索を用いた場合、最短手数で解が得られることが保証されている。
+実行結果から、11手で解が得られたため、これは最小手数であると考えられる。
+宣教師と人食い人種の問題は、制約条件が厳しいため、多くの状態が無効となるが、幅優先探索により、すべての可能な状態を均等に探索することで、最短経路を見つけることができる。
+
+\vspace{1em}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[bb=0 0 782 352,width=0.4\linewidth]{3-1result.png}
+  \caption{実行結果}
+  \label{fig:result}
+\end{figure}
+
+\vspace{1em}
+
+\section{課題3-2}
+
+\begin{screen}
+人間にとって視認しやすい実行例となるようプログラムを改良せよ．改良された実行結果をレポートに示せ
+\end{screen}
+
+\vspace{1em}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[bb=0 0 782 352,width=0.4\linewidth]{3-2result.png}
+  \caption{実行結果}
+  \label{fig:result}
+\end{figure}
+
+\vspace{1em}
+
+\section{課題3-3}
+
+\begin{screen}
+探索完了時の訪問ノード数オープンリストの最大長実行時間（ミリ秒）を表示する機能を追加せよ．これらの機能を用いて横型探索および縦型探索の性能を計測しその結果をレポートにて報告すること
+\end{screen}
+
+Search Type           : 縦型探索
+Visited Nodes         : 22
+Max Open List Size    : 9
+Execution Time        : 5 ms
+
+Search Type           : 横型探索
+Visited Nodes         : 28
+Max Open List Size    : 6
+Execution Time        : 59 ms
+
+\subsection{考察・感想}
+
+\paragraph{考察: }
+課題1-1cでは宣教師と人食い人種の問題を実装し幅優先探索と深さ優先探索の性能を比較した．実験結果から縦型探索の訪問ノード数は22横型探索は28となり縦型探索の方が効率的に見える．しかし横型探索が見つけた解は最短手数であることが保証されている点が重要である．
+
+探索アルゴリズムの性能を分析すると訪問ノード数だけでなくオープンリストの最大長や実行時間も考慮する必要がある．横型探索のオープンリスト最大長は6縦型探索は9となっており横型探索の方がメモリ効率が良い．実行時間については縦型探索が5ms横型探索が59msと大きな差があるがこれは問題規模が小さいため実際の差というより計測誤差の可能性もある．
+
+また問題の特性として制約条件（どちらの岸でも人食い人種の数が宣教師の数を上回ってはならない）が厳しく多くの状態が無効となる．isValid()メソッドでこれらの無効状態を適切にフィルタリングすることで探索空間を削減できている点も重要である．
+
+
+\paragraph{感想: }
+宣教師と人食い人種の問題は迷路探索よりも複雑な制約条件を持つため実装の難易度が高かった．特にisValid()メソッドで両岸の制約を正しくチェックする部分では右岸の状態を計算する必要があり（3 - this.missionary3 - this.cannibal）最初は実装ミスで無限ループに陥ることがあった．
+
+またtoString()メソッドで視覚的に分かりやすい出力を実装したことでプログラムの動作確認が容易になった．川の両岸の状態とボートの位置が一目で分かる表示により解の妥当性を人間が直感的に確認できる点は実用的なプログラム開発において重要だと感じた．
+
+幅優先探索と深さ優先探索の比較を通じてアルゴリズムの選択が最短手数と訪問ノード数実行時間のトレードオフになることを実感した．今回の問題では最短解が重要なので幅優先探索が適しているが問題によっては深さ優先探索の方が有効な場合もあり問題の特性に応じた適切なアルゴリズム選択の重要性を学んだ．
+
+\section{課題1-1d}
+
+\paragraph{自己評価／作業時間: } S／5時間
+
+\section{課題4-1}
+
+\begin{screen}
+ まずはプログラムを使わずに k と処理時間の関係を予想しそのグラフの概形を示しなさい．
+\end{screen}
+
+\vspace{1em}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[bb=0 0 782 352,width=0.4\linewidth]{4-1result.png}
+  \caption{実行結果}
+  \label{fig:result}
+\end{figure}
+
+\vspace{1em}
+
+\section{課題4-2}
+
+\begin{screen}
+k の変化に伴う訪問ノード数オープンリストの最大長実行時間（ミリ秒）を調べなさい．
+\end{screen}
+
+BFSの場合
+
+k=3
+
+Visited Nodes         : 29
+Max Open List Size    : 6
+Execution Time        : 30 ms
+
+k=4
+
+Visited Nodes         : 52
+Max Open List Size    : 12
+Execution Time        : 29 ms
+
+k=5
+
+Visited Nodes         : 62
+Max Open List Size    : 13
+Execution Time        : 37 ms
+
+k=6
+
+Visited Nodes         : 101
+Max Open List Size    : 25
+Execution Time        : 35 ms
+
+k=7
+
+Visited Nodes         : 121
+Max Open List Size    : 28
+Execution Time        : 35 ms
+
+k=8
+
+Visited Nodes         : 162
+Max Open List Size    : 40
+Execution Time        : 60 ms
+
+k=9
+
+Visited Nodes         : 186
+Max Open List Size    : 47
+Execution Time        : 56 ms
+
+k=10
+
+Visited Nodes         : 247
+Max Open List Size    : 66
+Execution Time        : 68 ms
+
+DFSの場合
+
+k=3
+
+Visited Nodes         : 17
+Max Open List Size    : 10
+Execution Time        : 0 ms
+
+k=4
+
+Visited Nodes         : 19
+Max Open List Size    : 17
+Execution Time        : 7 ms
+
+k=5
+
+Visited Nodes         : 23
+Max Open List Size    : 27
+Execution Time        : 8 ms
+
+k=6
+
+Visited Nodes         : 35
+Max Open List Size    : 51
+Execution Time        : 9 ms
+
+k=7
+
+Visited Nodes         : 33
+Max Open List Size    : 49
+Execution Time        : 7 ms
+
+k=8
+
+Visited Nodes         : 39
+Max Open List Size    : 84
+Execution Time        : 8 ms
+
+k=9
+
+Visited Nodes         : 37
+Max Open List Size    : 80
+Execution Time        : 0 ms
+
+k=10
+
+Visited Nodes         : 48
+Max Open List Size    : 117
+Execution Time        : 15 ms
+
+\section{課題4-3}
+
+\begin{screen}
+最後にk の変化に伴う実行時間等の変化について予想を踏まえて考察しなさい．
+\end{screen}
+
+BFSもDFSもkの変化によって実行時間は比例して変化すると思う
+
+\section{課題4-4, 4-5}
+
+\begin{screen}
+クローズドリストを導入しその効果を検証したうえでその効果について考察すること．
+\end{screen}
+
+すでにクローズドテストを導入していたためベンチマークは上記と変わらない。
+kが4以上は実行時間がかなり長くなったためk=3,4でのみ比較を行った。
+クローズドリストの効果比較は
+| k |  With Closed List   | Without Closed List | Visited Nodes Ratio | Time Ratio |
+|---|---------------------|---------------------|---------------------|------------|
+|   | Visited | Time(ms)  | Visited | Time(ms)  | (Without/With)      | (W/o / W)  |
+| 3 |      29 |        0  |  10,964 |    1,104  |      378.07         |  1,104.00  |
+| 4 |      52 |        0  |  16,806 |    1,864  |      323.19         |  1,864.00
+
+\subsection{考察・感想}
+
+\paragraph{考察: }
+課題1-1dではk人の宣教師とk人の人食い人種という一般化された問題を実装しkの変化に伴う性能の変化を測定した．またクローズドリストの効果を検証することで探索アルゴリズムの最適化手法について深く理解することができた．
+
+まずkの増加に伴う性能の変化について分析する．BFSの結果からk=3では訪問ノード数29k=10では247とkが増加するにつれて訪問ノード数が増加している．これは状態空間がkの増加とともに拡大するためである．しかし増加率は指数関数的ではなく比較的緩やかな増加に留まっている．これは制約条件により多くの無効な状態が排除されるためと考えられる．
+
+DFSの場合訪問ノード数はBFSよりも少ない傾向にあるがこれは運良く早期に解を発見できた場合の結果である．ただしDFSは最短解を保証しないため実用的にはBFSの方が信頼性が高い．
+
+最も重要な発見はクローズドリストの効果である．実験結果からk=3でクローズドリストなしの場合訪問ノード数が10,964（約378倍）実行時間が1,104ms（約1,100倍）となった．k=4では訪問ノード数が16,806（約323倍）とクローズドリストの有無で差が生じた．これは同じ状態に到達する経路が複数存在するこの問題の性質によりクローズドリストなしでは同じ状態を何度も訪問してしまうためである．
+
+またボート容量を k/2+1 とすることでkが大きい場合でも解が存在することを確認できた．この設定により効率的な移動が可能となり問題の拡張性が向上している．
+
+
+\paragraph{感想: }
+課題1-1dの実装を通じてアルゴリズムの最適化がいかに重要かを実感した．クローズドリストという単純な改良により訪問ノード数が約300倍以上削減されるという結果は驚きであった．特にk=5以上ではクローズドリストなしでは現実的な時間で解を得ることが困難になる点が印象的だった．
+
+またk=3からk=10まで段階的に性能を測定することで問題規模の増加に伴うアルゴリズムの振る舞いを可視化できた点も有益だった．グラフや表形式で結果を整理することで訪問ノード数やオープンリストの最大長がkに対してほぼ線形に増加することが明確になった．
+
+BFSとDFSの比較からは最短解を求める必要がある場合にはBFSが適していることを再確認できた．DFSは訪問ノード数が少なく見えるがこれは偶然早期に解を発見できた場合であり常に効率的とは限らない．問題の特性に応じた適切なアルゴリズム選択の重要性を実データをもとに学ぶことができた．
+
+\section{課題1-2a}
+
+\begin{screen}
+演習 1-1 のプログラムにコストを導入するための拡張点について説明せよ,特に経路コスト g やヒューリスティック関数 h′ の実現方法を答えよ
+\end{screen}
+
+船の左右の移動で消費コストが変わったり、船で運ぶ人数でコストが変わったりしてもコストを導入することで対応可能である。この点で拡張性がある。
+経路コストgはアクションのコストと状態の累計コストで構成されている。
+
+ヒューリスティック関数h’は
+\begin{screen}
+class MisCanHeuristic implements Heuristic {
+    public float eval(State s) {
+        var w = (MisCanWorld) s.world();
+        return w.missionary;
+    }
+}
+\end{screen}
+実際に左岸にいる宣教師の数をそのまま返している。
+
+\begin{screen}
+どのように探索プログラムに評価関数を与えているのかを説明せよ
+\end{screen}
+\begin{screen}
+public interface Evaluator {
+    public static Evaluator minCost() { return new MinCostEvaluator(); }
+    public static Evaluator bestFirst(Heuristic h) { return new BestFirstEvaluator(h); }
+    public static Evaluator aStar(Heuristic h) { return new AStarEvaluator(h); }
+
+    float f(State s);
+
+    default float g(State s) {
+        return s.cost;
+    }
+}
+\end{screen}
+この関数によりかかったコストを評価として扱っている。
+
+\section{課題1-2b}
+
+\begin{screen}
+最小コスト優先探索
+\end{screen}
+
+visited: 4674, max length: 2677
+Execution time: 234 ms
+
+\begin{screen}
+最良優先探索
+\end{screen}
+
+visited: 404, max length: 252
+Execution time: 37 ms
+
+\begin{screen}
+A*アルゴリズム
+\end{screen}
+
+visited: 236, max length: 160
+Execution time: 15 ms
+
+\section{課題1-2c}
+\begin{screen}
+繰り返し回避の導入に伴う訪問ノード数の削減率を報告せよ
+\end{screen}
+
+\subsection{実行結果}
+
+\subsubsection{初期状態: Example (2 3 5 / 7 1 6 / 4 8 0)}
+
+\textbf{最小コスト優先探索:}
+\begin{itemize}
+  \item 繰り返し回避なし: 計測省略（処理が遅すぎるため）
+  \item 繰り返し回避あり: 訪問ノード数 = 4,674
+\end{itemize}
+
+\textbf{最良優先探索:}
+\begin{itemize}
+  \item 繰り返し回避なし: 訪問ノード数 = 50,000（上限到達）
+  \item 繰り返し回避あり: 訪問ノード数 = 404
+  \item 削減率: 計算不可（上限到達のため）。参考値として50,000→404に削減
+\end{itemize}
+
+\textbf{A*アルゴリズム:}
+\begin{itemize}
+  \item 繰り返し回避なし: 訪問ノード数 = 3,135
+  \item 繰り返し回避あり: 訪問ノード数 = 236
+  \item \textbf{削減率 = 1 - 236 / 3,135 = 0.9247 (92.47\%)}
+\end{itemize}
+
+\subsubsection{初期状態: Random n=100 (4 1 3 / 2 5 6 / 0 7 8)}
+
+\textbf{最小コスト優先探索:}
+\begin{itemize}
+  \item 繰り返し回避あり: 訪問ノード数 = 230
+  \item 繰り返し回避なし: 計測省略
+\end{itemize}
+
+\textbf{最良優先探索:}
+\begin{itemize}
+  \item 繰り返し回避なし: 訪問ノード数 = 50,000（上限到達）
+  \item 繰り返し回避あり: 訪問ノード数 = 42
+  \item 削減率: 計算不可（上限到達のため）
+\end{itemize}
+
+\textbf{A*アルゴリズム:}
+\begin{itemize}
+  \item 繰り返し回避なし: 訪問ノード数 = 45
+  \item 繰り返し回避あり: 訪問ノード数 = 18
+  \item \textbf{削減率 = 1 - 18 / 45 = 0.6000 (60.00\%)}
+\end{itemize}
+
+\subsubsection{初期状態: Random n=200 (2 4 3 / 6 7 8 / 1 5 0)}
+
+\textbf{最小コスト優先探索:}
+\begin{itemize}
+  \item 繰り返し回避あり: 訪問ノード数 = 4,278
+  \item 繰り返し回避なし: 計測省略
+\end{itemize}
+
+\textbf{最良優先探索:}
+\begin{itemize}
+  \item 繰り返し回避なし: 訪問ノード数 = 50,000（上限到達）
+  \item 繰り返し回避あり: 訪問ノード数 = 366
+  \item 削減率: 計算不可（上限到達のため）
+\end{itemize}
+
+\textbf{A*アルゴリズム:}
+\begin{itemize}
+  \item 繰り返し回避なし: 訪問ノード数 = 2,334
+  \item 繰り返し回避あり: 訪問ノード数 = 206
+  \item \textbf{削減率 = 1 - 206 / 2,334 = 0.9117 (91.17\%)}
+\end{itemize}
+
+\subsubsection{初期状態: Random n=300 (4 3 1 / 5 8 0 / 7 6 2)}
+
+\textbf{最小コスト優先探索:}
+\begin{itemize}
+  \item 繰り返し回避あり: 訪問ノード数 = 2,467
+  \item 繰り返し回避なし: 計測省略
+\end{itemize}
+
+\textbf{最良優先探索:}
+\begin{itemize}
+  \item 繰り返し回避なし: 訪問ノード数 = 50,000（上限到達）
+  \item 繰り返し回避あり: 訪問ノード数 = 672
+  \item 削減率: 計算不可（上限到達のため）
+\end{itemize}
+
+\textbf{A*アルゴリズム:}
+\begin{itemize}
+  \item 繰り返し回避なし: 訪問ノード数 = 1,918
+  \item 繰り返し回避あり: 訪問ノード数 = 158
+  \item \textbf{削減率 = 1 - 158 / 1,918 = 0.9176 (91.76\%)}
+\end{itemize}
+
+\subsection{削減率のまとめ}
+
+\begin{table}[h]
+\centering
+\caption{繰り返し回避による訪問ノード数の削減率}
+\begin{tabular}{|l|c|c|c|c|}
+\hline
+\textbf{手法} & \textbf{Example} & \textbf{n=100} & \textbf{n=200} & \textbf{n=300} \\
+\hline
+最小コスト優先探索 & - & - & - & - \\
+最良優先探索 & 上限到達 & 上限到達 & 上限到達 & 上限到達 \\
+A*アルゴリズム & 92.47\% & 60.00\% & 91.17\% & 91.76\% \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{考察}
+
+\paragraph{A*アルゴリズムの削減率について}
+A*アルゴリズムでは、4つの初期状態すべてで削減率を計算することができた。削減率は60.00\%から92.47\%と非常に高く、特にExampleとn=200、n=300の問題では約90\%以上の削減を達成している。n=100の問題では削減率が60.00\%と比較的低いが、これは元々の問題が簡単で訪問ノード数が少なかったためと考えられる。
+
+\paragraph{最良優先探索について}
+最良優先探索では、繰り返し回避なしの場合、すべての初期状態で上限（50,000訪問ノード）に達してしまった。一方、繰り返し回避ありの場合は404ノード以下で解を発見できており、繰り返し回避の効果が極めて大きいことが確認できた。最良優先探索はヒューリスティック関数のみを評価するため、同じ状態を何度も訪問してしまう傾向が強いと考えられる。
+
+\paragraph{最小コスト優先探索について}
+最小コスト優先探索では、繰り返し回避なしの場合は処理が遅すぎるため計測を省略した。繰り返し回避ありの場合でも230から4,674ノードと比較的多くのノードを訪問しており、他の手法と比較して効率が悪い。これは経路コストのみを評価するため、ゴールへの方向性が考慮されないためである。
+
+\paragraph{結論}
+繰り返し回避の導入により、訪問ノード数を大幅に削減できることが確認された。特にA*アルゴリズムでは平均約83.85\%の削減率を達成し、効率的な探索が可能となった。最良優先探索では削減率の正確な計算はできなかったが、50,000ノードから数百ノードへの劇的な削減が見られた。8パズルのような状態空間探索では、繰り返し回避が必須の最適化手法であると言える。
+
+\section{課題1-2d}
+\begin{screen}
+異なる 3 種類のヒューリスティック関数 h′1, h′2, h′3 を比較しヒューリスティック関数の違いが性能に与える影響を調べよ
+\end{screen}
+
+\subsection{ヒューリスティック関数の設計}
+
+以下の3種類のヒューリスティック関数を設計し、$h'_1 \leq h'_2 \leq h'_3 \leq h$ の関係を持つように実装した。
+
+\paragraph{$h'_1$: 誤配置タイル数の半分}
+\begin{equation}
+h'_1(n) = \frac{1}{2} \times |\{i \mid \text{board}[i] \neq 0 \land \text{board}[i] \neq \text{GOAL}[i]\}|
+\end{equation}
+
+最も弱いヒューリスティック関数で、正しい位置にないタイルの数を2で割った値を返す。誤配置されたタイルを正しい位置に移動するには、平均的に複数回の移動が必要であるため、誤配置数の半分を推定値とする。この関数は常に真の最短手数$h(n)$を過小評価する。
+
+\paragraph{$h'_2$: 誤配置タイル数}
+\begin{equation}
+h'_2(n) = |\{i \mid \text{board}[i] \neq 0 \land \text{board}[i] \neq \text{GOAL}[i]\}|
+\end{equation}
+
+中程度の強さのヒューリスティック関数で、正しい位置にないタイルの総数を返す。各誤配置タイルを正しい位置に移動するには最低1回の移動が必要であるという推定に基づく。ただし、実際には複数のタイルが同時に動くことはないため、真の最短手数を過小評価する。
+
+\paragraph{$h'_3$: マンハッタン距離}
+\begin{equation}
+h'_3(n) = \sum_{i=1}^{8} (|\text{row}_{\text{current}}(i) - \text{row}_{\text{goal}}(i)| + |\text{col}_{\text{current}}(i) - \text{col}_{\text{goal}}(i)|)
+\end{equation}
+
+最も強いヒューリスティック関数で、各タイルが目標位置に到達するまでに必要な最小移動回数（水平距離+垂直距離）の総和を返す。この関数は各タイルが独立に動けると仮定しているため、実際にはタイル同士が干渉するために真の最短手数を過小評価する。
+
+\subsection{大小関係の理論的考察}
+
+\paragraph{$h'_1 \leq h'_2$の成立}
+任意の状態$n$において、$h'_1(n) = h'_2(n) / 2$であるため、$h'_1(n) \leq h'_2(n)$は常に成立する。例外は発生しない。
+
+\paragraph{$h'_2 \leq h'_3$の成立}
+誤配置されているタイル1つあたりのマンハッタン距離は最小で1（隣接位置）であるため、一般に$h'_2(n) \leq h'_3(n)$が成立する。ただし、すべてのタイルが隣接位置に誤配置されている場合は$h'_2(n) = h'_3(n)$となるが、これは稀である。実験結果からも、ほぼすべての状態で$h'_2(n) \leq h'_3(n)$が成立することが確認できた。
+
+\paragraph{$h'_3 \leq h$の成立}
+マンハッタン距離は「障害物がない場合の最短移動距離」を示すが、8パズルでは他のタイルが障害物となるため、実際の最短手数$h(n)$はマンハッタン距離以上になることが多い。したがって、一般に$h'_3(n) \leq h(n)$が成立する（許容的ヒューリスティック）。稀に$h'_3(n) = h(n)$となる理想的な状態も存在するが、$h'_3(n) > h(n)$となることはない。
+
+\subsection{実験設定}
+
+以下の5つの初期状態に対してA*アルゴリズムを実行し、3種類のヒューリスティック関数の性能を比較した。
+
+\begin{enumerate}
+\item Example: $\{2, 3, 5, 7, 1, 6, 4, 8, 0\}$（授業例）
+\item Random n=100: 学生番号を乱数シードとして100回ランダム操作
+\item Random n=200: 学生番号を乱数シードとして200回ランダム操作
+\item Random n=300: 学生番号を乱数シードとして300回ランダム操作
+\item Difficult Example: $\{8, 6, 7, 5, 0, 4, 2, 3, 1\}$（難しい8パズルの例）
+\end{enumerate}
+
+\subsection{実験結果}
+
+表\ref{tab:ex12d_results}に各初期状態・各ヒューリスティック関数における性能指標を示す。
+
+\begin{table}[h]
+\centering
+\caption{ヒューリスティック関数による性能比較}
+\label{tab:ex12d_results}
+\begin{tabular}{|l|l|r|r|r|r|r|}
+\hline
+\textbf{初期状態} & \textbf{関数} & \textbf{手数} & \textbf{訪問数} & \textbf{Open最大} & \textbf{Closed最大} & \textbf{時間(ms)} \\
+\hline
+Example & $h'_1$ & 14 & 902 & 572 & 901 & 88 \\
+Example & $h'_2$ & 14 & 236 & 160 & 235 & 18 \\
+Example & $h'_3$ & 14 & 85 & 60 & 84 & 6 \\
+\hline
+Random n=100 & $h'_1$ & 21 & 21,920 & 11,399 & 21,919 & 13,170 \\
+Random n=100 & $h'_2$ & 21 & 5,279 & 3,231 & 5,278 & 556 \\
+Random n=100 & $h'_3$ & 21 & 409 & 250 & 408 & 11 \\
+\hline
+Random n=200 & $h'_1$ & 17 & 4,041 & 2,470 & 4,040 & 358 \\
+Random n=200 & $h'_2$ & 17 & 1,035 & 668 & 1,034 & 20 \\
+Random n=200 & $h'_3$ & 17 & 264 & 173 & 263 & 0 \\
+\hline
+Random n=300 & $h'_1$ & 20 & 16,323 & 8,803 & 16,322 & 7,635 \\
+Random n=300 & $h'_2$ & 20 & 3,964 & 2,475 & 3,963 & 281 \\
+Random n=300 & $h'_3$ & 20 & 494 & 287 & 493 & 18 \\
+\hline
+Difficult & $h'_1$ & 28 & 153,442 & 32,147 & 153,441 & 909,515 \\
+Difficult & $h'_2$ & 28 & 80,807 & 29,721 & 80,806 & 197,077 \\
+Difficult & $h'_3$ & 28 & 4,515 & 2,472 & 4,514 & 2,069 \\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{解法の報告}
+
+各パズルの具体的な解法手順は「8-puzzle-ex12d.txt」に出力した。手数は以下の通りである。
+
+\begin{itemize}
+\item Example: 14手
+\item Random n=100: 21手
+\item Random n=200: 17手
+\item Random n=300: 20手
+\item Difficult Example: 28手
+\end{itemize}
+
+すべてのヒューリスティック関数で同じ手数の最適解が得られており、A*アルゴリズムが正しく機能していることが確認できる。
+
+\subsection{考察}
+
+\paragraph{訪問ノード数の比較}
+ヒューリスティック関数が強いほど訪問ノード数が劇的に減少している。Difficult Exampleでは、$h'_1$が153,442ノード、$h'_2$が80,807ノード（約47\%減）、$h'_3$が4,515ノード（約97\%減）を訪問している。これは、より正確な残り手数の推定により、無駄な探索が削減されたためである。
+
+Random n=100の場合、$h'_1$から$h'_3$への改善により訪問ノード数が約98\%（21,920→409）削減されており、ヒューリスティック関数の質が探索効率に極めて大きな影響を与えることが分かる。
+
+\paragraph{オープンリストとクローズドリストの最大長}
+強いヒューリスティック関数ほど、オープンリストとクローズドリストの最大サイズが小さくなっている。これはメモリ使用量の削減につながり、より大規模な問題にも対応可能になることを示唆している。
+
+\paragraph{実行時間の比較}
+実行時間も訪問ノード数に比例して改善されている。Difficult Exampleでは、$h'_1$が約15分（909秒）かかったのに対し、$h'_3$は約2秒で解を発見しており、約440倍の高速化が達成されている。
+
+\paragraph{ヒューリスティック関数の選択指針}
+実験結果から、マンハッタン距離（$h'_3$）が最も優れた性能を示すことが明らかになった。誤配置タイル数（$h'_2$）も実用的な性能を持つが、難しい問題では$h'_3$との性能差が顕著になる。$h'_1$は探索効率が著しく低く、実用的ではない。
+
+一般に、ヒューリスティック関数は「許容的（真の距離を過大評価しない）」かつ「できるだけ真の距離に近い」ことが望ましい。マンハッタン距離はこの両方の性質を高いレベルで満たしているため、8パズルにおいて最適なヒューリスティック関数と言える。
+
+\paragraph{大小関係の実験的検証}
+すべての実験結果において、3つのヒューリスティック関数は同じ手数の最適解を発見している。これは、すべてのヒューリスティック関数が許容的（$h' \leq h$）であり、A*アルゴリズムの最適性が保証されていることを示している。
+
+\end{document}
+
+\section{AI利用記録}
+
+利用目的 コードのデバックを行うため
+利用段階 EightPuzzleProblem クラスの実装段階．
+利用内容 System.out.printlnの内容や使用する変数の提案
+検証方法 実行結果を授業資料の例と比較し，期待どおりの解が得られることを確認した．

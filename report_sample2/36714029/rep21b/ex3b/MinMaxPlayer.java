@@ -1,4 +1,4 @@
-package report_sample2.rep21b.ex3b;
+package ex3b;
 
 import static java.lang.Float.*;
 
@@ -30,11 +30,11 @@ if (isTerminal(state, depth)) {
 return this.eval.value(state);
 }
 
-var v = NEGATIVE_INFINITY;
+float v = NEGATIVE_INFINITY;
 
 for (var move : state.getMoves()) {
 var next = state.perform(move);
-var v0 = minSearch(next, depth + 1);
+float v0 = minSearch(next, depth + 1);
 
 if (depth == 0 && v0 > v) {
 this.move = move;
@@ -51,11 +51,11 @@ if (isTerminal(state, depth)) {
 return this.eval.value(state);
 }
 
-var v = POSITIVE_INFINITY;
+float v = POSITIVE_INFINITY;
 
 for (var move : state.getMoves()) {
 var next = state.perform(move);
-var v0 = maxSearch(next, depth + 1);
+float v0 = maxSearch(next, depth + 1);
 
 if (depth == 0 && v0 < v) {
 this.move = move;

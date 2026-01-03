@@ -1,4 +1,4 @@
-package report_sample2.rep21b.ex3b;
+package ex3b;
 
 public class RandomPlayer extends Player {
 public RandomPlayer() {

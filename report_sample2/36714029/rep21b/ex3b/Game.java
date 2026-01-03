@@ -1,6 +1,6 @@
-package report_sample2.rep21b.ex3b;
+package ex3b;
 
-import static report_sample2.rep21b.ex3b.Color.*;
+import static ex3b.Color.*;
 
 import java.util.*;
 
