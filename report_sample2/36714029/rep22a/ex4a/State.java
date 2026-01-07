@@ -90,10 +90,10 @@ public class State implements Cloneable {
 	}
 
 	public void count(int p, int q, int r) {
-		var x = this.board[p].getSign();
-		var y = this.board[q].getSign();
-		var z = this.board[r].getSign();
-		var sum = x + y + z;
+	    int x = this.board[p].getSign();
+		int y = this.board[q].getSign();
+		int z = this.board[r].getSign();
+		int sum = x + y + z;
 		if (sum == 3) this.a3 += 1;
 		if (sum == -3) this.b3 += 1;
 		if (x * y * z == 0) {
