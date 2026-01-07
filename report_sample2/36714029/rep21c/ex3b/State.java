@@ -41,10 +41,10 @@ return IntStream.rangeClosed(1, n)
 }
 
 public State perform(Move move) {
-var next = clone();
-next.numStones -= move.removal;
-next.color = this.color.flipped();
-next.move = move;
-return next;
-}
+        var next = clone();
+        next.numStones -= move.removal;
+        next.color = this.color.flipped();
+        next.move = move;
+        return next;
+    }
 }

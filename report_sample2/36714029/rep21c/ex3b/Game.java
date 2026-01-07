@@ -6,13 +6,13 @@ import java.util.*;
 
 public class Game {
 public static void main(String[] args) {
-for (int numStones = 1; numStones <= 20; numStones++) {
-var p0 = new RandomPlayer();
-var p1 = new MinMaxPlayer(new Eval(), 20);
-Game g = new Game(numStones, p0, p1);
-g.play();
-g.printResult();
-}
+    for (int numStones = 1; numStones <= 20; numStones++) {
+        var p0 = new RandomPlayer();
+        var p1 = new MyAlphaBetaPlayer(new Eval(), 20);
+        Game g = new Game(numStones, p0, p1);
+        g.play();
+        g.printResult();
+    }
 }
 
 State state;
