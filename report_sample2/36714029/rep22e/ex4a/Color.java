@@ -1,3 +1,4 @@
+package ex4a;
 public enum Color {
 	BLACK(1, "o"),
 	WHITE(-1, "x"),
