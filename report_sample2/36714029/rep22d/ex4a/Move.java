@@ -1,3 +1,5 @@
+
+
 public class Move {
 	int index;
 	Color color;

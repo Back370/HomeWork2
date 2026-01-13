@@ -1,3 +1,6 @@
+
+package ex4a;
+
 public class ComparisonTest {
 	public static void main(String[] args) {
 		System.out.println("=== Move Ordering Performance Comparison ===\n");

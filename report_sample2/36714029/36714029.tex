@@ -330,6 +330,15 @@ if (state.isGoal()) {
 \begin{screen}
 評価関数の仕様を答えなさい．
 \end{screen}
+\begin{screen}
+public class Eval {
+	float value(State state) {
+		return -1025 * state.b3 + 511 * state.a3 - 63 * state.b2 + 31 * state.a2 - 15 * state.b1 + 7 * state.a1;
+	}
+}
+\end{screen}
+相手と自分の盤面のラインの数を評価値に反映している。具体的には、3つ連続したラインを持つことが最も高く評価され、次に2つ連続したライン、最後に1つのラインが評価される。相手のラインは負の重みで評価され、自分のラインは正の重みで評価される。
+相手の負の評価値のほうが大きいため、相手のラインを阻止することが優先される。
 
 \section{課題2-2b}
 \begin{screen}

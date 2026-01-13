@@ -1,3 +1,6 @@
+
+package ex4a;
+
 public class Player {
 	String name;
 	Color color;

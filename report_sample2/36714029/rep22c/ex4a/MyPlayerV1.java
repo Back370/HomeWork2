@@ -1,3 +1,5 @@
+package ex4a;
+
 import static java.lang.Float.*;
 
 public class MyPlayerV1 extends Player {

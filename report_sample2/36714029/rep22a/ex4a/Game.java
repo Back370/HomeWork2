@@ -1,3 +1,5 @@
+package ex4a;
+
 import java.util.*;
 
 public class Game {

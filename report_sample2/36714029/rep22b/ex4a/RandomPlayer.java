@@ -1,3 +1,5 @@
+
+package ex4a;
 public class RandomPlayer extends Player {
 	public RandomPlayer() {
 		super("Random");

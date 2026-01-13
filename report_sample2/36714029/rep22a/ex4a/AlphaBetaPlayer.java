@@ -1,4 +1,7 @@
+package ex4a;
+
 import static java.lang.Float.*;
+
 
 public class AlphaBetaPlayer extends Player {
 	Eval eval;
