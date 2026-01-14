@@ -29,11 +29,11 @@ public class AlphaBetaPlayer extends Player {
 			return this.eval.value(state);
 		}
 
-		var v = NEGATIVE_INFINITY;
+		float v = NEGATIVE_INFINITY;
 
 		for (var move: state.getMoves()) {
-			var next = state.perform(move);
-			var v0 = minSearch(next, alpha, beta, depthLimit - 1);
+			State next = state.perform(move);
+			float v0 = minSearch(next, alpha, beta, depthLimit - 1);
 
 
 			if (depthLimit == this.depthLimit && v0 > v) {
@@ -56,11 +56,12 @@ public class AlphaBetaPlayer extends Player {
 			return this.eval.value(state);
 		}
 
-		var v = POSITIVE_INFINITY;
+		float v = POSITIVE_INFINITY;
+
 
 		for (var move: state.getMoves()) {
-			var next = state.perform(move);
-			var v0 = maxSearch(next, alpha, beta, depthLimit - 1);
+			State next = state.perform(move);
+			float v0 = maxSearch(next, alpha, beta, depthLimit - 1);
 
 			if (depthLimit == this.depthLimit && v0 < v) {
 				this.move = move;

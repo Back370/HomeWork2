@@ -28,11 +28,11 @@ public class MyPlayerV1 extends Player {
 			return color * this.eval.value(state);
 		}
 
-		var v = NEGATIVE_INFINITY;
+		float v = NEGATIVE_INFINITY;
 
 		for (var move: state.getMoves()) {
-			var next = state.perform(move);
-			var v0 = -negamax(next, -beta, -alpha, depthLimit - 1, -color);
+			State next = state.perform(move);
+			float v0 = -negamax(next, -beta, -alpha, depthLimit - 1, -color);
 
 			if (depthLimit == this.depthLimit && v0 > v) {
 				this.move = move;

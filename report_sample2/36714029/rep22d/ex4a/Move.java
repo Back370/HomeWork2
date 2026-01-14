@@ -1,4 +1,4 @@
-
+package ex4a;
 
 public class Move {
 	int index;
