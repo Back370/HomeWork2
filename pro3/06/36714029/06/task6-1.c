@@ -7,7 +7,7 @@ struct student{
 };
 int main(void){
     struct student takao = {"Takao", 173, 70.5};
-
+    //(void*)はなくても動作する
     printf("\n--- 各メンバのアドレス ---\n");
     printf("takao.nameのアドレス   = %p\n", (void*)&takao.name);
     printf("takao.heightのアドレス = %p\n", (void*)&takao.height);
