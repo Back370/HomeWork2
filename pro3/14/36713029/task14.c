@@ -2,7 +2,7 @@
 
 void IPtoArray(int *ip, int n){
     for (int i = 0; i < n; i++) {
-        ip[i] = i + 1;
+        ip[i] = n - i;
     }
 }
 
