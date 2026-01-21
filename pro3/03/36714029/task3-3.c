@@ -31,8 +31,6 @@ int main(void) {
     for(int i = 0; i < 4; i++) {
         printf("%d番目の生徒の平均点 %d\n", i+1, (s[i].subject[0] + s[i].subject[1])/2);
     }
-
-
     return 0;
 }
 
